@@ -231,7 +231,7 @@ bool CEntryExit::TransitionStarted(CPed* ped) {
             return false; // No big vehicles allowed :(
         }
 
-        switch (ped->m_pVehicle->m_nVehicleType) {
+        switch (ped->m_pVehicle->m_baseVehicleType) {
         case eVehicleType::VEHICLE_TYPE_AUTOMOBILE: {
             if (!bCarsAndAircraft) {
                 return false;

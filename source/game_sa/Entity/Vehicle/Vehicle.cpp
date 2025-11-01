@@ -28,19 +28,6 @@
 #include "PedClothesDesc.h"
 
 uint32& planeRotorDmgTimeMS = *(uint32*)0xC1CC1C;
-float& CVehicle::WHEELSPIN_TARGET_RATE = *(float*)0x8D3498;          // 1.0f
-float& CVehicle::WHEELSPIN_INAIR_TARGET_RATE = *(float*)0x8D349C;    // 10.0f
-float& CVehicle::WHEELSPIN_RISE_RATE = *(float*)0x8D34A0;            // 0.95f
-float& CVehicle::WHEELSPIN_FALL_RATE = *(float*)0x8D34A4;            // 0.7f
-float& CVehicle::m_fAirResistanceMult = *(float*)0x8D34A8;           // 2.5f
-float& CVehicle::ms_fRailTrackResistance = *(float*)0x8D34AC;        // 0.003f
-float& CVehicle::ms_fRailTrackResistanceDefault = *(float*)0x8D34B0; // 0.003f
-bool& CVehicle::bDisableRemoteDetonation = *(bool*)0xC1CC00;
-bool& CVehicle::bDisableRemoteDetonationOnContact = *(bool*)0xC1CC01;
-bool& CVehicle::m_bEnableMouseSteering = *(bool*)0xC1CC02;
-bool& CVehicle::m_bEnableMouseFlying = *(bool*)0xC1CC03;
-bool& CVehicle::ms_forceVehicleLightsOff = *(bool*)0xC1CC18;
-bool& CVehicle::s_bPlaneGunsEjectShellCasings = *(bool*)0xC1CC19;
 
 float& fBurstTyreMod = *(float*)0x8D34B4;                // 0.13f
 float& fBurstSpeedMax = *(float*)0x8D34B8;               // 0.3f
@@ -253,7 +240,7 @@ CVehicle::CVehicle(eVehicleCreatedBy createdBy) : CPhysical(), m_vehicleAudio(),
     m_bHasPreRenderEffects = true;
     SetTypeVehicle();
 
-    m_fRawSteerAngle = 0.0f;
+    m_fSteer = 0.0f;
     m_f2ndSteerAngle = 0.0f;
     m_nCurrentGear = 1;
     m_fGearChangeCount = 0.0f;
@@ -304,7 +291,7 @@ CVehicle::CVehicle(eVehicleCreatedBy createdBy) : CPhysical(), m_vehicleAudio(),
     m_nLastWeaponDamageType = -1;
     m_vehicleSpecialColIndex = -1;
 
-    m_pWhoInstalledBombOnMe = nullptr;
+    m_BombOwner = nullptr;
     m_wBombTimer = 0;
     m_pWhoDetonatedMe = nullptr;
     m_nTimeWhenBlowedUp = 0;
@@ -317,21 +304,21 @@ CVehicle::CVehicle(eVehicleCreatedBy createdBy) : CPhysical(), m_vehicleAudio(),
     m_HornCounter = 0;
     m_HornPattern = 0;
     m_nCarHornTimer = 0;
-    field_4EC = 0;
+    m_NumOilSpillsToDo = 0;
     m_pTowingVehicle = nullptr;
     m_pVehicleBeingTowed = nullptr;
     m_nTimeTillWeNeedThisCar = 0;
-    m_nAlarmState = 0;
-    m_nDoorLock = eCarLock::CARLOCK_UNLOCKED;
+    m_CarAlarmState = 0;
+    m_eDoorLockState = eCarLockState::CARLOCK_UNLOCKED;
     m_nProjectileWeaponFiringTime = 0;
     m_nAdditionalProjectileWeaponFiringTime = 0;
     m_nTimeForMinigunFiring = 0;
     m_pLastDamageEntity = nullptr;
     m_pEntityWeAreOn = nullptr;
-    m_fVehicleRearGroundZ = 0.0f;
-    m_fVehicleFrontGroundZ = 0.0f;
-    field_511 = 0;
-    field_512 = 0;
+    m_LastRearHeight = 0.0f;
+    m_LastFrontHeight = 0.0f;
+    m_nRainHitCount = 0;
+    m_nSoundIndex = 0;
     m_comedyControlState = eComedyControlState::INACTIVE;
     m_FrontCollPoly.valid = false;
     m_RearCollPoly.valid = false;
@@ -340,28 +327,28 @@ CVehicle::CVehicle(eVehicleCreatedBy createdBy) : CPhysical(), m_vehicleAudio(),
     m_autoPilot.m_nTempAction = TEMPACT_NONE;
     m_autoPilot.SetCarMission(MISSION_NONE, 0);
     m_autoPilot.carCtrlFlags.bAvoidLevelTransitions = false;
-    m_nRemapTxd = -1;
-    m_nPreviousRemapTxd = -1;
+    m_newRemapTxd = -1;
+    m_remapTxd = -1;
     m_pRemapTexture = nullptr;
     m_pOverheatParticle = nullptr;
     m_pFireParticle = nullptr;
     m_pDustParticle = nullptr;
-    m_pCustomCarPlate = nullptr;
-    m_anUpgrades.fill(-1);
-    m_fWheelScale = 1.0f;
+    m_CustomPlateTexture = nullptr;
+    m_upgrades.fill(-1);
+    m_wheelScale = 1.0f;
     m_nWindowsOpenFlags = 0;
     m_nNitroBoosts = 0;
     m_nHasslePosId = 0;
     m_nVehicleWeaponInUse = CAR_WEAPON_NOT_USED;
     m_fDirtLevel = (float)((CGeneral::GetRandomNumber() % 15));
-    m_nCreationTime = CTimer::GetTimeInMS();
+    m_TimeOfCreation = CTimer::GetTimeInMS();
     SetCollisionLighting(tColLighting(0x48));
 }
 
 // 0x6E2B40
 CVehicle::~CVehicle() {
     CReplay::RecordVehicleDeleted(this);
-    m_nAlarmState = 0;
+    m_CarAlarmState = 0;
     DeleteRwObject(); // V1053 Calling the 'DeleteRwObject' virtual function in the destructor may lead to unexpected result at runtime.
     CRadar::ClearBlipForEntity(eBlipType::BLIP_CAR, GetVehiclePool()->GetRef(this));
 
@@ -404,9 +391,9 @@ CVehicle::~CVehicle() {
         }
     }
 
-    if (m_pCustomCarPlate) {
-        RwTextureDestroy(m_pCustomCarPlate);
-        m_pCustomCarPlate = nullptr;
+    if (m_CustomPlateTexture) {
+        RwTextureDestroy(m_CustomPlateTexture);
+        m_CustomPlateTexture = nullptr;
     }
 
     const auto iRopeInd = CRopes::FindRope(reinterpret_cast<uint32>(this) + 1);
@@ -1151,7 +1138,7 @@ int32 CVehicle::GetRemapIndex() {
     }
 
     for (auto i = 0; i < mi->GetNumRemaps(); ++i) {
-        if (mi->m_anRemapTxds[i] == m_nPreviousRemapTxd) {
+        if (mi->m_anRemapTxds[i] == m_remapTxd) {
             return i;
         }
     }
@@ -1160,13 +1147,13 @@ int32 CVehicle::GetRemapIndex() {
 
 // 0x6D0BC0
 void CVehicle::SetRemapTexDictionary(int32 txdId) {
-    if (txdId != m_nPreviousRemapTxd) {
+    if (txdId != m_remapTxd) {
         if (txdId == -1) {
             m_pRemapTexture = nullptr;
-            CTxdStore::RemoveRef(m_nPreviousRemapTxd);
-            m_nPreviousRemapTxd = -1;
+            CTxdStore::RemoveRef(m_remapTxd);
+            m_remapTxd = -1;
         }
-        m_nRemapTxd = txdId;
+        m_newRemapTxd = txdId;
     }
 }
 
@@ -1245,19 +1232,19 @@ eVehicleAppearance CVehicle::GetVehicleAppearance() const {
 // returns false if vehicle model has no car plate material
 // 0x6D10E0
 bool CVehicle::CustomCarPlate_TextureCreate(CVehicleModelInfo* model) {
-    m_pCustomCarPlate = nullptr;
+    m_CustomPlateTexture = nullptr;
 
     if (!model->m_pPlateMaterial) {
         return false;
     }
 
     if (const auto text = model->GetCustomCarPlateText()) {
-        m_pCustomCarPlate = CCustomCarPlateMgr::CreatePlateTexture(text, model->m_nPlateType);
+        m_CustomPlateTexture = CCustomCarPlateMgr::CreatePlateTexture(text, model->m_nPlateType);
         model->SetCustomCarPlateText(text);
         model->m_nPlateType = -1;
     } else {
-        m_pCustomCarPlate = RpMaterialGetTexture(model->m_pPlateMaterial);
-        RwTextureAddRef(m_pCustomCarPlate);
+        m_CustomPlateTexture = RpMaterialGetTexture(model->m_pPlateMaterial);
+        RwTextureAddRef(m_CustomPlateTexture);
     }
 
     return true;
@@ -1265,9 +1252,9 @@ bool CVehicle::CustomCarPlate_TextureCreate(CVehicleModelInfo* model) {
 
 // 0x6D1150
 void CVehicle::CustomCarPlate_TextureDestroy() {
-    if (m_pCustomCarPlate) {
-        RwTextureDestroy(m_pCustomCarPlate);
-        m_pCustomCarPlate = nullptr;
+    if (m_CustomPlateTexture) {
+        RwTextureDestroy(m_CustomPlateTexture);
+        m_CustomPlateTexture = nullptr;
     }
 }
 
@@ -1358,7 +1345,7 @@ void CVehicle::ProcessDelayedExplosion() {
 // NOTSA
 void CVehicle::ApplyTurnForceToOccupantOnEntry(CPed* passenger) {
     // Apply some turn force
-    switch (m_nVehicleType) {
+    switch (m_baseVehicleType) {
     case VEHICLE_TYPE_BIKE: {
         ApplyTurnForce(
             GetUp() * passenger->m_fMass / -50.f,
@@ -1679,7 +1666,7 @@ bool CVehicle::IsOnItsSide() const {
 
 // 0x6D1E20
 bool CVehicle::CanPedOpenLocks(const CPed* ped) const {
-    switch (m_nDoorLock) {
+    switch (m_eDoorLockState) {
     case CARLOCK_LOCKED:
     case CARLOCK_COP_CAR:
     case CARLOCK_LOCKED_PLAYER_INSIDE:
@@ -1694,8 +1681,8 @@ bool CVehicle::CanPedOpenLocks(const CPed* ped) const {
 
 // 0x6D1E60
 bool CVehicle::CanDoorsBeDamaged() const {
-    // TODO: ranges::contains({...}, m_nDoorLock)
-    switch (m_nDoorLock) {
+    // TODO: ranges::contains({...}, m_eDoorLockState)
+    switch (m_eDoorLockState) {
     case CARLOCK_NOT_USED:
     case CARLOCK_UNLOCKED:
     case CARLOCK_SKIP_SHUT_DOORS:
@@ -1718,18 +1705,18 @@ bool CVehicle::CanPedEnterCar() {
 
 // 0x6D21F0
 void CVehicle::ProcessCarAlarm() {
-    switch (m_nAlarmState) {
+    switch (m_CarAlarmState) {
     case 0:
-    case std::numeric_limits<decltype(m_nAlarmState)>::max(): { // Doing this in case we ever the underlying type.
+    case std::numeric_limits<decltype(m_CarAlarmState)>::max(): { // Doing this in case we ever the underlying type.
         return;
     }
     }
 
     const auto ts = (uint16)CTimer::GetTimeStepInMS();
-    if (m_nAlarmState >= ts) {
-        m_nAlarmState = ts;
+    if (m_CarAlarmState >= ts) {
+        m_CarAlarmState = ts;
     } else {
-        m_nAlarmState = 0;
+        m_CarAlarmState = 0;
         m_HornCounter = 0;
     }
 }
@@ -1851,7 +1838,7 @@ void CVehicle::ActivateBombWhenEntered() {
     if (m_pDriver) {
         if (!vehicleFlags.bDriverLastFrame && m_nBombOnBoard == BOMB_IGNITION_ACTIVATED) { // If the driver just entered and there's an ignition bomb...
             m_wBombTimer = 1000;
-            m_pWhoDetonatedMe = m_pWhoInstalledBombOnMe; // NOTE: `m_pWhoInstalledBombOnMe` isn't set in `ActivateBomb` weird...
+            m_pWhoDetonatedMe = m_BombOwner; // NOTE: `m_pWhoInstalledBombOnMe` isn't set in `ActivateBomb` weird...
             CEntity::RegisterReference(m_pWhoDetonatedMe);
         }
     }
@@ -2476,13 +2463,13 @@ int32 CVehicle::GetReplacementUpgrade(int32 nodeId) {
 // 0x6D3AB0
 void CVehicle::RemoveAllUpgrades() {
     RpClumpForAllAtomics(m_pRwClump, RemoveAllUpgradesCB, nullptr);
-    m_anUpgrades.fill(-1);
+    m_upgrades.fill(-1);
 }
 
 // 0x6D3AE0
 int32 CVehicle::GetSpareHasslePosId() const {
     const auto numberOfPositions = [&] {
-        switch (m_nVehicleSubType) {
+        switch (m_vehicleType) {
         case eVehicleType::VEHICLE_TYPE_BIKE:
         case eVehicleType::VEHICLE_TYPE_BMX:
         case eVehicleType::VEHICLE_TYPE_QUAD:
@@ -2673,7 +2660,7 @@ int32 CVehicle::GetPlaneNumGuns() {
 // 0x6D4010
 void CVehicle::SetFiringRateMultiplier(float multiplier) {
     multiplier = std::clamp(multiplier, 0.0f, 15.9375f);
-    switch (m_nVehicleSubType) {
+    switch (m_vehicleType) {
     case VEHICLE_TYPE_PLANE:
         AsPlane()->m_nFiringMultiplier = uint8(multiplier * 16.0f);
         break;
@@ -2685,7 +2672,7 @@ void CVehicle::SetFiringRateMultiplier(float multiplier) {
 
 // 0x6D4090
 float CVehicle::GetFiringRateMultiplier() {
-    switch (m_nVehicleSubType) {
+    switch (m_vehicleType) {
     case VEHICLE_TYPE_PLANE:
         return float(AsPlane()->m_nFiringMultiplier) / 16.0f;
     case VEHICLE_TYPE_HELI:
@@ -2862,7 +2849,7 @@ void CVehicle::DoPlaneGunFireFX(CWeapon* weapon, CVector& particlePos, CVector& 
     };
 
 
-    switch (m_nVehicleSubType) {
+    switch (m_vehicleType) {
     case VEHICLE_TYPE_PLANE: {
         DoFx(AsPlane()->m_pGunParticles);
         break;
@@ -3081,7 +3068,7 @@ bool CVehicle::CanPedLeanOut(CPed* ped) {
     case ANIM_GROUP_SILENCED:
         return false;
     default: {
-        switch (m_nVehicleSubType) {
+        switch (m_vehicleType) {
         case VEHICLE_TYPE_HELI:
         case VEHICLE_TYPE_PLANE:
         case VEHICLE_TYPE_TRAIN:
@@ -3114,36 +3101,36 @@ void CVehicle::SetupRender() {
     }
 
     // Handle remap TXD
-    if (m_nRemapTxd < 0) {
+    if (m_newRemapTxd < 0) {
         vehicleFlags.bDontSetColourWhenRemapping = false;
     } else {
         // Make sure it's loaded, if not, request it to be loaded
-        if (CStreaming::IsModelLoaded(TXDToModelId(m_nRemapTxd))) {
+        if (CStreaming::IsModelLoaded(TXDToModelId(m_newRemapTxd))) {
             // If there was a remap texture set, remove it
             if (m_pRemapTexture) {
                 m_pRemapTexture = nullptr;
-                CTxdStore::RemoveRef(m_nPreviousRemapTxd);
+                CTxdStore::RemoveRef(m_remapTxd);
             }
 
             // Add ref to current txd
-            CTxdStore::AddRef(m_nRemapTxd);
+            CTxdStore::AddRef(m_newRemapTxd);
 
-            m_nPreviousRemapTxd = m_nRemapTxd;
+            m_remapTxd = m_newRemapTxd;
 
             // Set this to -1. From the looks of it, this
             // should be set during the frame or something
             // and then it's loaded here
             // instead of having to load the txd and all that mid-frame
-            m_nRemapTxd = -1;
+            m_newRemapTxd = -1;
 
             // Store texture of current txd
-            m_pRemapTexture = GetFirstTexture(CTxdStore::GetTxd(m_nPreviousRemapTxd));
+            m_pRemapTexture = GetFirstTexture(CTxdStore::GetTxd(m_remapTxd));
 
             if (!vehicleFlags.bDontSetColourWhenRemapping) {
                 m_nPrimaryColor = 1;
             }
         } else {
-            CStreaming::RequestModel(TXDToModelId(m_nRemapTxd), STREAMING_KEEP_IN_MEMORY);
+            CStreaming::RequestModel(TXDToModelId(m_newRemapTxd), STREAMING_KEEP_IN_MEMORY);
         }
     }
 
@@ -4524,7 +4511,7 @@ void CVehicle::AddVehicleUpgrade(int32 modelId) {
 
 // 0x6E3400
 void CVehicle::SetupUpgradesAfterLoad() {
-    for (auto& upgrade : m_anUpgrades) {
+    for (auto& upgrade : m_upgrades) {
         if (upgrade != -1) {
             AddVehicleUpgrade(std::exchange(upgrade, -1));
         }
@@ -4544,7 +4531,7 @@ bool IsValidModForVehicle(uint32 modelId, CVehicle* vehicle) {
 bool IsVehiclePointerValid(CVehicle* vehicle) {
     const auto* const pool = GetVehiclePool();
     assert(pool);
-    return pool->IsObjectValid(vehicle) && (vehicle->m_nVehicleType == VEHICLE_TYPE_FPLANE || !vehicle->m_pCollisionList.IsEmpty());
+    return pool->IsObjectValid(vehicle) && (vehicle->m_baseVehicleType == VEHICLE_TYPE_FPLANE || !vehicle->m_pCollisionList.IsEmpty());
 }
 
 // 0x6E3950

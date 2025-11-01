@@ -1001,8 +1001,8 @@ void CTheScripts::RemoveThisPed(CPed* ped) {
         if (veh->IsDriver(ped)) {
             veh->RemoveDriver(false);
 
-            if (veh->m_nDoorLock == eCarLock::CARLOCK_COP_CAR) {
-                veh->m_nDoorLock = eCarLock::CARLOCK_UNLOCKED;
+            if (veh->m_eDoorLockState == eCarLockState::CARLOCK_COP_CAR) {
+                veh->m_eDoorLockState = eCarLockState::CARLOCK_UNLOCKED;
             }
 
             if (ped->IsCop() && veh->IsLawEnforcementVehicle()) {

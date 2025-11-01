@@ -31,7 +31,7 @@ CQuadBike::CQuadBike(int32 modelIndex, eVehicleCreatedBy createdBy) :
     CAutomobile(modelIndex, createdBy, false)
 {
     m_pHandling = gHandlingDataMgr.GetBikeHandlingPointer(GetVehicleModelInfo()->m_nHandlingId);
-    m_nVehicleSubType = VEHICLE_TYPE_QUAD;
+    m_vehicleType = VEHICLE_TYPE_QUAD;
 
     { // unused
         field_9A8[0] = 1.f;
@@ -257,7 +257,7 @@ void CQuadBike::ProcessControlInputs(uint8 playerNum) {
         m_sRideAnimData.LeanFwd += (float(-pad->GetSteeringUpDown()) / 128.0f - m_sRideAnimData.LeanFwd) * CTimer::GetTimeStep() / 5.0f;
     } else {
         if (CPad::NewMouseControllerState.m_AmountMoved.IsZero() &&
-            (std::fabs(m_fRawSteerAngle) <= 0.0f || m_nLastControlInput != eControllerType::MOUSE || pad->IsSteeringInAnyDirection())
+            (std::fabs(m_fSteer) <= 0.0f || m_nLastControlInput != eControllerType::MOUSE || pad->IsSteeringInAnyDirection())
         ) {
             if (pad->GetSteeringUpDown() || m_nLastControlInput != eControllerType::MOUSE) {
                 m_nLastControlInput = eControllerType::KEYBOARD;

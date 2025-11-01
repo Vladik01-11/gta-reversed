@@ -43,8 +43,8 @@ enum eCarWeapon : uint8 {
     CAR_WEAPON_DOUBLE_ROCKET  = 4,
 };
 
-enum eCarLock : uint32 {
-    CARLOCK_NOT_USED,
+enum eCarLockState : uint32 {
+    CARLOCK_NOT_USED = 0,
     CARLOCK_UNLOCKED,
     CARLOCK_LOCKED,
     CARLOCK_LOCKOUT_PLAYER_ONLY,
@@ -71,10 +71,11 @@ enum eVehicleLightsFlags : uint32 {
 };
 
 enum eVehicleCreatedBy : uint8 {
-    RANDOM_VEHICLE = 1,
-    MISSION_VEHICLE = 2,
-    PARKED_VEHICLE = 3,
-    PERMANENT_VEHICLE = 4
+    UNUSED_VEHICLE = 0,
+    RANDOM_VEHICLE,
+    MISSION_VEHICLE,
+    PARKED_VEHICLE,
+    PERMANENT_VEHICLE
 };
 
 enum eBombState {
@@ -309,16 +310,16 @@ public:
         } vehicleFlags;
     };
 
-    uint32            m_nCreationTime;
-    uint8             m_nPrimaryColor;
-    uint8             m_nSecondaryColor;
-    uint8             m_nTertiaryColor;
-    uint8             m_nQuaternaryColor;
-    uint8             m_anExtras[2];
-    std::array<int16, NUM_VEHICLE_UPGRADES> m_anUpgrades;
-    float             m_fWheelScale;
-    uint16            m_nAlarmState;
-    int16             m_nForcedRandomRouteSeed; // if this is non-zero the random wander gets deterministic
+    uint32            m_TimeOfCreation;
+
+    uint8             m_nPrimaryColor, m_nSecondaryColor, m_nTertiaryColor, m_nQuaternaryColor; // m_colour1 - m_colour4
+    uint8             m_anExtras[2]; // m_comp1 - m_comp2
+    std::array<int16, NUM_VEHICLE_UPGRADES> m_upgrades;
+    float             m_wheelScale;
+
+    uint16            m_CarAlarmState;
+    int16             m_nForcedRandomRouteSeed; // if this is non-zero the random wander gets deterministic, ForcedRandomSeed
+
     CPed*             m_pDriver;
     CPed*             m_apPassengers[8]{};
     uint8             m_nNumPassengers;
@@ -328,16 +329,24 @@ public:
     uint8             m_nMaxPassengers;
     uint8             m_nWindowsOpenFlags; // initialised, but not used?
     uint8             m_nNitroBoosts;
+
     int8              m_vehicleSpecialColIndex;
     CEntity*          m_pEntityWeAreOn; // we get it from CWorld::ProcessVerticalLine or ProcessEntityCollision, it's entity under us,
                                         // only static entities (buildings or roads)
+
     CFire*            m_pFire;
+
     float             m_fSteerAngle;
     float             m_f2ndSteerAngle; // used for steering 2nd set of wheels or elevators etc..
     float             m_GasPedal;
     float             m_BrakePedal;
+
+//protected:
     eVehicleCreatedBy m_nCreatedBy;
+
+public:
     int16             m_nExtendedRemovalRange;        // when game wants to delete a vehicle, it gets min(m_wExtendedRemovalRange, 170.0)
+
     uint8             m_nBombOnBoard : 3;             // 0 = None
                                                       // 1 = Timed
                                                       // 2 = On ignition
@@ -348,52 +357,79 @@ public:
     uint8            m_ropeType : 2;                  // See `eRopeType` (also called `m_nWinchType`)
     uint8            m_nGunsCycleIndex : 2;           // Cycle through alternate gun hard-points on planes/helis
     uint8            m_nOrdnanceCycleIndex : 2;       // Cycle through alternate ordnance hard-points on planes/helis
+
     uint8            m_nUsedForCover;                 // Has n number of cops hiding/attempting to hid behind it
     uint8            m_nAmmoInClip;                   // Used to make the guns on boat do a reload (20 by default).
     uint8            m_nPacMansCollected;             // initialised, but not used?
     uint8            m_nPedsPositionForRoadBlock;     // 0, 1 or 2
     uint8            m_nNumCopsForRoadBlock;
+
     float            m_fDirtLevel; // Dirt level of vehicle body texture: 0.0f=fully clean, 15.0f=maximum dirt visible
+
     uint8            m_nCurrentGear;
     float            m_fGearChangeCount; // used as parameter for cTransmission::CalculateDriveAcceleration, but doesn't change
+
     float            m_fWheelSpinForAudio;
+
     float            m_fHealth; // 1000.0f = full health. 0 -> explode
+
     CVehicle*        m_pTowingVehicle;            // m_pTractor
     CVehicle*        m_pVehicleBeingTowed;        // m_pTrailer
-    CPed*            m_pWhoInstalledBombOnMe;
+
+    // uint32 m_bFireAutoFlare; // In Mobile
+
+    CEntity*         m_BombOwner; // Who Installed Bomb On Me
+
     uint32           m_nTimeTillWeNeedThisCar;     // game won't try to delete this car while this time won't reach
+
     uint32           m_nGunFiringTime;             // last time when gun on vehicle was fired (used on boats)
     uint32           m_nTimeWhenBlowedUp;          // game will delete vehicle when 60 seconds after this time will expire
-    int16            m_nCopsInCarTimer;            // timer for police car (which is following player) occupants to stay in car. If this timer reachs
+
+    uint16           m_nCopsInCarTimer;            // timer for police car (which is following player) occupants to stay in car. If this timer reachs
                                             // some value, they will leave a car. The timer increases each frame if player is stopped in car,
                                             // otherway it resets
-    int16           m_wBombTimer;           // goes down with each frame
-    CPed*           m_pWhoDetonatedMe;      // if vehicle was detonated, game copies m_pWhoInstalledBombOnMe here
-    float           m_fVehicleFrontGroundZ; // we get these values from CCollision::IsStoredPolyStillValidVerticalLine
-    float           m_fVehicleRearGroundZ;  // or CWorld::ProcessVerticalLine
-    char            field_4EC;              // initialised, but not used?
-    char            field_4ED[11];          // possibly non-used data?
-    eCarLock        m_nDoorLock;
+
+    uint16          m_wBombTimer;           // goes down with each frame
+    CEntity*        m_pWhoDetonatedMe;      // if vehicle was detonated, game copies m_BombOwner here
+
+    // we get these values from CCollision::IsStoredPolyStillValidVerticalLine or CWorld::ProcessVerticalLine
+    float           m_LastFrontHeight, m_LastRearHeight;
+
+    uint8           m_NumOilSpillsToDo; // initialised, unused
+    float           m_OilSpillLastX, m_OilSpillLastY; // unused
+
+    eCarLockState   m_eDoorLockState;
+
     uint32          m_nProjectileWeaponFiringTime;           // manual-aimed projectiles for hunter, lock-on projectile for hydra
     uint32          m_nAdditionalProjectileWeaponFiringTime; // manual-aimed projectiles for hydra
+
     uint32          m_nTimeForMinigunFiring;                 // minigun on hunter
+
     uint8           m_nLastWeaponDamageType;                 // see eWeaponType, -1 if no damage
     CEntity*        m_pLastDamageEntity;
-    char            field_510;             // not used?
-    char            field_511;             // initialised, but not used?
-    char            field_512;             // initialised, but not used?
+
+    uint8           m_nRadioStation; // unused
+    uint8           m_nRainHitCount; // initialised, unused
+    uint8           m_nSoundIndex;   // initialised, unused
+
     eCarWeapon      m_nVehicleWeaponInUse;
+
     uint32          m_HornCounter;
-    int8            m_HornPattern;
-    char            m_nCarHornTimer; // car horn related
+    uint8           m_HornPattern;
+    uint8           m_nCarHornTimer; // car horn related
+
     eComedyControlState m_comedyControlState;
-    char            m_nHasslePosId;
+
+    uint8           m_nHasslePosId;
+
     CStoredCollPoly m_FrontCollPoly;          // poly which is under front part of car
     CStoredCollPoly m_RearCollPoly;           // poly which is under rear part of car
     tColLighting    m_anCollisionLighting[4]; // left front, left rear, right front, right rear
+
     FxSystem_c*     m_pOverheatParticle;
     FxSystem_c*     m_pFireParticle;
     FxSystem_c*     m_pDustParticle;
+
     union {
         uint8 m_nRenderLightsFlags;
         struct {
@@ -403,31 +439,42 @@ public:
             uint8 m_bLeftRear : 1;
         } m_renderLights;
     };
-    RwTexture*   m_pCustomCarPlate;
-    float        m_fRawSteerAngle; // AKA m_fSteeringLeftRight
-    eVehicleType m_nVehicleType;    // Theory by forkerer:
-    eVehicleType m_nVehicleSubType; // Hack to have stuff be 2 classes at once, like vortex which can act like a car and a boat
-    int16        m_nPreviousRemapTxd;
-    int16        m_nRemapTxd;
+
+//protected:
+    RwTexture*   m_CustomPlateTexture;
+
+    float        m_fSteer;
+    eVehicleType m_baseVehicleType;
+    eVehicleType m_vehicleType; // Hack to have stuff be 2 classes at once, like vortex which can act like a car and a boat
+
+    int16        m_remapTxd; // const char* m_remapTxdName;       // In Mobile
+    int16        m_newRemapTxd; // const char* m_newRemapTxdName; // In Mobile
     RwTexture*   m_pRemapTexture;
 
-    static float &WHEELSPIN_TARGET_RATE;
-    static float &WHEELSPIN_INAIR_TARGET_RATE;
-    static float &WHEELSPIN_RISE_RATE;
-    static float &WHEELSPIN_FALL_RATE;
-    static float &m_fAirResistanceMult;
-    static float &ms_fRailTrackResistance;
-    static float &ms_fRailTrackResistanceDefault;
-    static bool &bDisableRemoteDetonation;
-    static bool &bDisableRemoteDetonationOnContact;
-    static bool &m_bEnableMouseSteering;
-    static bool &m_bEnableMouseFlying;
-    static inline auto& m_nLastControlInput = *(eControllerType*)0xC1CC04;
-    static inline auto& m_aSpecialColVehicle = StaticRef<std::array<CVehicle*, 4>, 0xC1CC08>();
-    static inline auto& m_aSpecialColModel = StaticRef<std::array<CColModel, 4>, 0xC1CC78>();
-    static bool &ms_forceVehicleLightsOff;
-    static bool &s_bPlaneGunsEjectShellCasings;
-    static inline tHydraulicData(&m_aSpecialHydraulicData)[4] = *(tHydraulicData(*)[4])0xC1CB60;
+public:
+    inline static float WHEELSPIN_TARGET_RATE = 1.0f; // 0x8D3498
+    inline static float WHEELSPIN_INAIR_TARGET_RATE = 10.0f; // 0x8D349C
+    inline static float WHEELSPIN_RISE_RATE = 0.95f; // 0x8D34A0
+    inline static float WHEELSPIN_FALL_RATE = 0.7f; // 0x8D34A4
+
+    inline static bool ms_forceVehicleLightsOff; // 0xC1CC18
+
+    inline static bool s_bPlaneGunsEjectShellCasings; // 0xC1CC19, unused
+    inline static float m_fAirResistanceMult = 2.5f; // 0x8D34A8
+    inline static float ms_fRailTrackResistance = 0.003f; // 0x8D34AC
+    inline static float ms_fRailTrackResistanceDefault = 0.003f; // 0x8D34B0
+
+    inline static bool bDisableRemoteDetonation; // 0xC1CC00
+    inline static bool bDisableRemoteDetonationOnContact; // 0xC1CC01
+    inline static bool m_bEnableMouseSteering; // 0xC1CC02
+    inline static bool m_bEnableMouseFlying; // 0xC1CC03
+    inline static eControllerType m_nLastControlInput; // 0xC1CC04
+
+    inline static std::array<CColModel, 4> m_aSpecialColModel; // 0xC1CC78
+    inline static std::array<CVehicle*, 4> m_aSpecialColVehicle; // 0xC1CC08
+    inline static std::array<tHydraulicData, 4> m_aSpecialHydraulicData; // 0xC1CB60
+
+    // inline static CEntity* m_pTappedGasTankVehicle; // In Mobile
 
     static constexpr auto Type = VEHICLE_TYPE_IGNORE;
 
@@ -666,38 +713,38 @@ public:
     static void SetComponentAtomicAlpha(RpAtomic* atomic, int32 alpha);
 
 public: // NOTSA functions
-    // m_nVehicleType start
-    [[nodiscard]] bool IsVehicleTypeValid()     const { return m_nVehicleType != VEHICLE_TYPE_IGNORE; }
-    [[nodiscard]] bool IsAutomobile()           const { return m_nVehicleType == VEHICLE_TYPE_AUTOMOBILE; }
-    [[nodiscard]] bool IsMonsterTruck()         const { return m_nVehicleType == VEHICLE_TYPE_MTRUCK; }
-    [[nodiscard]] bool IsQuad()                 const { return m_nVehicleType == VEHICLE_TYPE_QUAD; }
-    [[nodiscard]] bool IsHeli()                 const { return m_nVehicleType == VEHICLE_TYPE_HELI; }
-    [[nodiscard]] bool IsPlane()                const { return m_nVehicleType == VEHICLE_TYPE_PLANE; }
-    [[nodiscard]] bool IsBoat()                 const { return m_nVehicleType == VEHICLE_TYPE_BOAT; }
-    [[nodiscard]] bool IsTrain()                const { return m_nVehicleType == VEHICLE_TYPE_TRAIN; }
-    [[nodiscard]] bool IsFakeAircraft()         const { return m_nVehicleType == VEHICLE_TYPE_FHELI || m_nVehicleType == VEHICLE_TYPE_FPLANE; }
-    [[nodiscard]] bool IsBike()                 const { return m_nVehicleType == VEHICLE_TYPE_BIKE; }
-    [[nodiscard]] bool IsBMX()                  const { return m_nVehicleType == VEHICLE_TYPE_BMX; }
-    [[nodiscard]] bool IsTrailer()              const { return m_nVehicleType == VEHICLE_TYPE_TRAILER; }
-    // m_nVehicleType end
+    // m_baseVehicleType start
+    [[nodiscard]] bool IsVehicleTypeValid()     const { return m_baseVehicleType != VEHICLE_TYPE_IGNORE; }
+    [[nodiscard]] bool IsAutomobile()           const { return m_baseVehicleType == VEHICLE_TYPE_AUTOMOBILE; }
+    [[nodiscard]] bool IsMonsterTruck()         const { return m_baseVehicleType == VEHICLE_TYPE_MTRUCK; }
+    [[nodiscard]] bool IsQuad()                 const { return m_baseVehicleType == VEHICLE_TYPE_QUAD; }
+    [[nodiscard]] bool IsHeli()                 const { return m_baseVehicleType == VEHICLE_TYPE_HELI; }
+    [[nodiscard]] bool IsPlane()                const { return m_baseVehicleType == VEHICLE_TYPE_PLANE; }
+    [[nodiscard]] bool IsBoat()                 const { return m_baseVehicleType == VEHICLE_TYPE_BOAT; }
+    [[nodiscard]] bool IsTrain()                const { return m_baseVehicleType == VEHICLE_TYPE_TRAIN; }
+    [[nodiscard]] bool IsFakeAircraft()         const { return m_baseVehicleType == VEHICLE_TYPE_FHELI || m_baseVehicleType == VEHICLE_TYPE_FPLANE; }
+    [[nodiscard]] bool IsBike()                 const { return m_baseVehicleType == VEHICLE_TYPE_BIKE; }
+    [[nodiscard]] bool IsBMX()                  const { return m_baseVehicleType == VEHICLE_TYPE_BMX; }
+    [[nodiscard]] bool IsTrailer()              const { return m_baseVehicleType == VEHICLE_TYPE_TRAILER; }
+    // m_baseVehicleType end
 
-    // m_nVehicleSubType start
-    [[nodiscard]] bool IsSubVehicleTypeValid() const { return m_nVehicleSubType != VEHICLE_TYPE_IGNORE; }
-    [[nodiscard]] bool IsSubAutomobile()       const { return m_nVehicleSubType == VEHICLE_TYPE_AUTOMOBILE; }
-    [[nodiscard]] bool IsSubMonsterTruck()     const { return m_nVehicleSubType == VEHICLE_TYPE_MTRUCK; }
-    [[nodiscard]] bool IsSubQuad()             const { return m_nVehicleSubType == VEHICLE_TYPE_QUAD; }
-    [[nodiscard]] bool IsSubHeli()             const { return m_nVehicleSubType == VEHICLE_TYPE_HELI; }
-    [[nodiscard]] bool IsSubPlane()            const { return m_nVehicleSubType == VEHICLE_TYPE_PLANE; }
-    [[nodiscard]] bool IsSubBoat()             const { return m_nVehicleSubType == VEHICLE_TYPE_BOAT; }
-    [[nodiscard]] bool IsSubTrain()            const { return m_nVehicleSubType == VEHICLE_TYPE_TRAIN; }
-    [[nodiscard]] bool IsSubFakeAircraft()     const { return m_nVehicleSubType == VEHICLE_TYPE_FHELI || m_nVehicleSubType == VEHICLE_TYPE_FPLANE; }
-    [[nodiscard]] bool IsSubBike()             const { return m_nVehicleSubType == VEHICLE_TYPE_BIKE; }
-    [[nodiscard]] bool IsSubBMX()              const { return m_nVehicleSubType == VEHICLE_TYPE_BMX; }
-    [[nodiscard]] bool IsSubTrailer()          const { return m_nVehicleSubType == VEHICLE_TYPE_TRAILER; }
+    // m_vehicleType start
+    [[nodiscard]] bool IsSubVehicleTypeValid() const { return m_vehicleType != VEHICLE_TYPE_IGNORE; }
+    [[nodiscard]] bool IsSubAutomobile()       const { return m_vehicleType == VEHICLE_TYPE_AUTOMOBILE; }
+    [[nodiscard]] bool IsSubMonsterTruck()     const { return m_vehicleType == VEHICLE_TYPE_MTRUCK; }
+    [[nodiscard]] bool IsSubQuad()             const { return m_vehicleType == VEHICLE_TYPE_QUAD; }
+    [[nodiscard]] bool IsSubHeli()             const { return m_vehicleType == VEHICLE_TYPE_HELI; }
+    [[nodiscard]] bool IsSubPlane()            const { return m_vehicleType == VEHICLE_TYPE_PLANE; }
+    [[nodiscard]] bool IsSubBoat()             const { return m_vehicleType == VEHICLE_TYPE_BOAT; }
+    [[nodiscard]] bool IsSubTrain()            const { return m_vehicleType == VEHICLE_TYPE_TRAIN; }
+    [[nodiscard]] bool IsSubFakeAircraft()     const { return m_vehicleType == VEHICLE_TYPE_FHELI || m_vehicleType == VEHICLE_TYPE_FPLANE; }
+    [[nodiscard]] bool IsSubBike()             const { return m_vehicleType == VEHICLE_TYPE_BIKE; }
+    [[nodiscard]] bool IsSubBMX()              const { return m_vehicleType == VEHICLE_TYPE_BMX; }
+    [[nodiscard]] bool IsSubTrailer()          const { return m_vehicleType == VEHICLE_TYPE_TRAILER; }
 
     [[nodiscard]] bool IsSubRoadVehicle()      const { return !IsSubHeli() && !IsSubPlane() && !IsSubTrain(); }
     [[nodiscard]] bool IsSubFlyingVehicle()    const { return IsSubHeli() && IsSubPlane(); }
-    // m_nVehicleSubType end
+    // m_vehicleType end
 
     [[nodiscard]] bool IsTransportVehicle()    const { return m_nModelIndex == MODEL_TAXI    || m_nModelIndex == MODEL_CABBIE; }
     [[nodiscard]] bool IsAmphibiousHeli()      const { return m_nModelIndex == MODEL_SEASPAR || m_nModelIndex == MODEL_LEVIATHN; }
@@ -712,7 +759,7 @@ public: // NOTSA functions
     [[nodiscard]] bool IsCreatedBy(eVehicleCreatedBy v) const { return v == m_nCreatedBy; }
     [[nodiscard]] bool IsMissionVehicle() const { return m_nCreatedBy == MISSION_VEHICLE; }
 
-    bool CanUpdateHornCounter() { return m_nAlarmState == 0 || m_nAlarmState == -1 || m_info.m_nStatus == STATUS_WRECKED; }
+    bool CanUpdateHornCounter() { return m_CarAlarmState == 0 || m_CarAlarmState == -1 || m_info.m_nStatus == STATUS_WRECKED; }
 
     CPlane* AsPlane() { return reinterpret_cast<CPlane*>(this); }
     CHeli*  AsHeli()  { return reinterpret_cast<CHeli*>(this); }

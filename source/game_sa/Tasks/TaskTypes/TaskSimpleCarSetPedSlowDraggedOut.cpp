@@ -33,8 +33,8 @@ bool CTaskSimpleCarSetPedSlowDraggedOut::ProcessPed(CPed* ped) {
     // Remove ped as passenger/driver from the vehicle
     if (m_Vehicle->IsDriver(ped)) { // 0x64C27C
         m_Vehicle->RemoveDriver(true);
-        if (m_Vehicle->m_nDoorLock == CARLOCK_COP_CAR) {
-            m_Vehicle->m_nDoorLock = CARLOCK_UNLOCKED;
+        if (m_Vehicle->m_eDoorLockState == CARLOCK_COP_CAR) {
+            m_Vehicle->m_eDoorLockState = CARLOCK_UNLOCKED;
         }
         if (ped->IsCop() && m_Vehicle->IsLawEnforcementVehicle()) {
             m_Vehicle->ChangeLawEnforcerState(false);

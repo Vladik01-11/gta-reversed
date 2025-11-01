@@ -740,11 +740,11 @@ CVehicle* CCheat::VehicleCheat(eModelID modelId) {
     vehicle->SetPosn(pos);
     vehicle->SetOrientation(0.0f, 0.0f, rotZ);
     vehicle->SetStatus(STATUS_ABANDONED);
-    vehicle->m_nDoorLock = CARLOCK_UNLOCKED;
+    vehicle->m_eDoorLockState = CARLOCK_UNLOCKED;
     CWorld::Add(vehicle);
     CTheScripts::ClearSpaceForMissionEntity(pos, vehicle);
 
-    switch (vehicle->m_nVehicleType) {
+    switch (vehicle->m_baseVehicleType) {
     case VEHICLE_TYPE_TRAIN: {
         const auto train = vehicle->AsTrain();
         train->FindPositionOnTrackFromCoors();

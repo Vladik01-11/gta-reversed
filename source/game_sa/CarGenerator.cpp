@@ -178,7 +178,7 @@ void CCarGenerator::DoInternalProcessing()
         actualModelId == MODEL_SEASPAR ||
         actualModelId == MODEL_SKIMMER)
     {
-        switch (CModelInfo::GetModelInfo(actualModelId)->AsVehicleModelInfoPtr()->m_nVehicleType)
+        switch (CModelInfo::GetModelInfo(actualModelId)->AsVehicleModelInfoPtr()->m_baseVehicleType)
         {
         case VEHICLE_TYPE_HELI:
             vehicle = new CHeli(actualModelId, PARKED_VEHICLE);
@@ -218,7 +218,7 @@ void CCarGenerator::DoInternalProcessing()
                 mi->SetCustomCarPlateText(plate.m_szPlateText);
         }
 
-        switch (CModelInfo::GetModelInfo(actualModelId)->AsVehicleModelInfoPtr()->m_nVehicleType)
+        switch (CModelInfo::GetModelInfo(actualModelId)->AsVehicleModelInfoPtr()->m_baseVehicleType)
         {
         case VEHICLE_TYPE_MTRUCK:
             vehicle = new CMonsterTruck(actualModelId, PARKED_VEHICLE);
@@ -264,7 +264,7 @@ void CCarGenerator::DoInternalProcessing()
     vehicle->SetPosn(posn);
     vehicle->SetOrientation(0.0f, 0.0f, m_nAngle * (TWO_PI / 256));
     vehicle->SetStatus(STATUS_ABANDONED);
-    vehicle->m_nDoorLock = eCarLock::CARLOCK_UNLOCKED;
+    vehicle->m_eDoorLockState = eCarLockState::CARLOCK_UNLOCKED;
     vehicle->vehicleFlags.bHasBeenOwnedByPlayer = bPlayerHasAlreadyOwnedCar;
     tractorDriverPedType = -1;
 
@@ -319,10 +319,10 @@ void CCarGenerator::DoInternalProcessing()
     }
 
     if (CGeneral::GetRandomNumberInRange(0, 100) < m_nAlarmChance)
-        vehicle->m_nAlarmState = -1;
+        vehicle->m_CarAlarmState = -1;
 
     if (CGeneral::GetRandomNumberInRange(0, 100) < m_nDoorLockChance)
-        vehicle->m_nDoorLock = eCarLock::CARLOCK_LOCKED;
+        vehicle->m_eDoorLockState = eCarLockState::CARLOCK_LOCKED;
 
     if (m_nPrimaryColor != -1 && m_nSecondaryColor != -1)
     {
@@ -434,7 +434,7 @@ uint32 CCarGenerator::CalcNextGen()
 // notsa
 CVehicle* CCarGenerator::CreateVehicle(eModelID model, eVehicleCreatedBy createdBy) {
     const auto* mi = CModelInfo::GetModelInfo(model)->AsVehicleModelInfoPtr();
-    switch (const auto vt = mi->m_nVehicleType) {
+    switch (const auto vt = mi->m_baseVehicleType) {
     case VEHICLE_TYPE_AUTOMOBILE:
         return new CAutomobile{model, createdBy, true};
     case VEHICLE_TYPE_MTRUCK:

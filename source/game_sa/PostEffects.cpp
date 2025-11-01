@@ -978,9 +978,9 @@ void CPostEffects::Render() {
     if (m_bSpeedFX && m_bSpeedFXUserFlag && m_bSpeedFXUserFlagCurrentFrame) {
         auto* veh = FindPlayerVehicle();
         if (m_fSpeedFXManualSpeedCurrentFrame == 0.0f) {
-            if (veh && !notsa::contains({ VEHICLE_TYPE_PLANE, VEHICLE_TYPE_HELI, VEHICLE_TYPE_BOAT, VEHICLE_TYPE_TRAIN }, veh->m_nVehicleType)) {
+            if (veh && !notsa::contains({ VEHICLE_TYPE_PLANE, VEHICLE_TYPE_HELI, VEHICLE_TYPE_BOAT, VEHICLE_TYPE_TRAIN }, veh->m_baseVehicleType)) {
                 bool fxDrawn{};
-                if (veh->m_nVehicleType == VEHICLE_TYPE_AUTOMOBILE && veh->handlingFlags.bNosInst && veh->AsAutomobile()->m_fTireTemperature < 0.0f) {
+                if (veh->m_baseVehicleType == VEHICLE_TYPE_AUTOMOBILE && veh->handlingFlags.bNosInst && veh->AsAutomobile()->m_fTireTemperature < 0.0f) {
                     const auto dir = veh->GetMoveSpeed().Dot(veh->GetForward());
                     if (dir > 0.2f) {
                         SetSpeedFXManualSpeedCurrentFrame(2.0f * dir * (veh->m_GasPedal + 1.0f));

@@ -526,13 +526,13 @@ bool CCarEnterExit::IsVehicleHealthy(const CVehicle* vehicle) {
 
 // 0x6510D0
 bool CCarEnterExit::IsVehicleStealable(const CVehicle* vehicle, const CPed* ped) {
-    switch (vehicle->m_nVehicleSubType) {
+    switch (vehicle->m_vehicleType) {
     case VEHICLE_TYPE_PLANE:
     case VEHICLE_TYPE_HELI:
         return false;
     }
 
-    switch (vehicle->m_nVehicleType) {
+    switch (vehicle->m_baseVehicleType) {
     case VEHICLE_TYPE_AUTOMOBILE:
     case VEHICLE_TYPE_BIKE:
         break;

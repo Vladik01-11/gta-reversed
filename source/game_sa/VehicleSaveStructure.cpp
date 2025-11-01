@@ -17,13 +17,22 @@ void CVehicleSaveStructure::Construct(CVehicle* v) {
     m_nSecondaryColor = v->m_nSecondaryColor;
     m_nTertiaryColor = v->m_nTertiaryColor;
     m_nQuaternaryColor = v->m_nQuaternaryColor;
-    m_nAlarmState = v->m_nAlarmState;
+    m_CarAlarmState = v->m_CarAlarmState;
     m_nMaxPassengers = v->m_nMaxPassengers;
     m_fSteerAngle = v->m_fSteerAngle;
     m_fGasPedal = v->m_GasPedal;
     m_fBrakePedal = v->m_BrakePedal;
     m_nVehicleUpperFlags = v->m_nVehicleUpperFlags;
     m_nVehicleLowerFlags = v->m_nVehicleLowerFlags;
+
+    // In Mobile:
+    // m_VehicleCreatedBy  = v->m_nCreatedBy;
+    // m_nHealth           = v->m_fHealth;
+    // m_eDoorLockState    = v->m_eDoorLockState;
+    // m_nPhysicalFlags    = v->m_nPhysicalFlags;
+    // m_fMass             = v->m_fMass;
+    // m_fTurnMass         = v->m_fTurnMass;
+    // m_fBuoyancyConstant = v->m_fBuoyancyConstant;
 }
 
 // 0x5D23B0
@@ -33,11 +42,20 @@ void CVehicleSaveStructure::Extract(CVehicle* v) {
     v->m_nSecondaryColor = m_nSecondaryColor;
     v->m_nTertiaryColor = m_nTertiaryColor;
     v->m_nQuaternaryColor = m_nQuaternaryColor;
-    v->m_nAlarmState = m_nAlarmState;
+    v->m_CarAlarmState = m_CarAlarmState;
     v->m_nMaxPassengers = m_nMaxPassengers;
     v->m_fSteerAngle = m_fSteerAngle;
     v->m_GasPedal = m_fGasPedal;
     v->m_BrakePedal = m_fBrakePedal;
     v->m_nVehicleUpperFlags = m_nVehicleUpperFlags;
     v->m_nVehicleLowerFlags = m_nVehicleLowerFlags;
+
+    // In Mobile:
+    // v->SetVehicleCreatedBy(m_VehicleCreatedBy);
+    // v->m_nHealth = m_fHealth;
+    // v->m_eDoorLockState = m_eDoorLockState;
+    // v->m_nPhysicalFlags = m_nPhysicalFlags;
+    // v->m_fMass = m_fMass;
+    // v->m_fTurnMass = m_fTurnMass;
+    // v->m_fBuoyancyConstant = m_fBuoyancyConstant;
 }

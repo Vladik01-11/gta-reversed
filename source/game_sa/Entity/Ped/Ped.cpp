@@ -2843,13 +2843,13 @@ void CPed::PreRenderAfterTest()
             auto drawRealTimeShadow = true;
             if (!physicalFlags.bSubmergedInWater) {
                 if (const auto* veh = GetVehicleIfInOne()) {
-                    drawRealTimeShadow = IsVehicleRTShadable(veh->m_nVehicleSubType);
+                    drawRealTimeShadow = IsVehicleRTShadable(veh->m_vehicleType);
                 }
 
                 if (activeTask) {
                     drawRealTimeShadow = false;
                     if (const auto* targetVeh = notsa::cast<CTaskComplexEnterCarAsDriver>(activeTask)->GetTargetCar()) {
-                        drawRealTimeShadow = IsVehicleRTShadable(targetVeh->m_nVehicleSubType);
+                        drawRealTimeShadow = IsVehicleRTShadable(targetVeh->m_vehicleType);
                     }
                 }
 

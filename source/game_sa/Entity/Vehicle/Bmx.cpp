@@ -21,7 +21,7 @@ CBmx::CBmx(int32 modelIndex, eVehicleCreatedBy createdBy) :
     CBike(modelIndex, createdBy) 
 {
     auto mi                     = CModelInfo::GetModelInfo(modelIndex);
-    m_nVehicleSubType           = VEHICLE_TYPE_BMX;
+    m_vehicleType           = VEHICLE_TYPE_BMX;
     m_RideAnimData.AnimGroup = CAnimManager::GetAnimBlocks()[mi->GetAnimFileIndex()].GroupId;
     if (m_RideAnimData.AnimGroup < ANIM_GROUP_BMX || m_RideAnimData.AnimGroup > ANIM_GROUP_CHOPPA) {
         m_RideAnimData.AnimGroup = ANIM_GROUP_BMX;

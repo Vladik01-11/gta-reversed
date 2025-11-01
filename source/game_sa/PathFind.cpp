@@ -790,7 +790,7 @@ void CPathFind::UpdateStreaming(bool bForceStreaming) {
             continue;
         }
 
-        switch (veh.m_nVehicleSubType) {
+        switch (veh.m_vehicleType) {
         case VEHICLE_TYPE_HELI:
         case VEHICLE_TYPE_PLANE:
         case VEHICLE_TYPE_BOAT:

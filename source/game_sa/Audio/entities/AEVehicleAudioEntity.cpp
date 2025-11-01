@@ -1031,7 +1031,7 @@ void CAEVehicleAudioEntity::ProcessVehicleSirenAlarmHorn(tVehicleParams& vp) {
     // If no siren, possibly use horn
     bool isHornOn = false;
     if (!isSirenOn) {
-        if (!vp.Vehicle->m_nAlarmState || vp.Vehicle->m_nAlarmState == -1 || vp.Vehicle->GetStatus() == STATUS_WRECKED) {
+        if (!vp.Vehicle->m_CarAlarmState || vp.Vehicle->m_CarAlarmState == -1 || vp.Vehicle->GetStatus() == STATUS_WRECKED) {
             GetHornState(&isHornOn, vp);
         } else {
             const auto time = CTimer::GetTimeInMS();
@@ -1955,7 +1955,7 @@ bool CAEVehicleAudioEntity::GetHornState(tVehicleParams& vp) const noexcept {
     if (m_IsWreckedVehicle) {
         return false;
     }
-    if (vp.Vehicle->m_nAlarmState && vp.Vehicle->m_nAlarmState != -1 && vp.Vehicle->GetStatus() != STATUS_WRECKED) {
+    if (vp.Vehicle->m_CarAlarmState && vp.Vehicle->m_CarAlarmState != -1 && vp.Vehicle->GetStatus() != STATUS_WRECKED) {
         return false;
     }
     if (!vp.Vehicle->m_HornCounter) {
@@ -4553,8 +4553,8 @@ void CAEVehicleAudioEntity::ProcessVehicle(CPhysical* physical) {
     tVehicleParams vp{};
     vp.Vehicle               = vehicle;
     vp.ModelIndexMinusOffset = physical->GetModelIndex() - MODEL_VEHICLE_FIRST;
-    vp.BaseVehicleType       = vehicle->m_nVehicleType;
-    vp.SpecificVehicleType   = vehicle->m_nVehicleSubType;
+    vp.BaseVehicleType       = vehicle->m_baseVehicleType;
+    vp.SpecificVehicleType   = vehicle->m_vehicleType;
     vp.Transmission          = vehicle->m_pHandlingData
         ? &vehicle->m_pHandlingData->m_transmissionData
         : nullptr;
@@ -4564,7 +4564,7 @@ void CAEVehicleAudioEntity::ProcessVehicle(CPhysical* physical) {
 
     switch (m_AuSettings.VehicleAudioType) {
     case AE_CAR: {
-        UpdateGasPedalAudio(vehicle, vehicle->m_nVehicleType);
+        UpdateGasPedalAudio(vehicle, vehicle->m_baseVehicleType);
 
         if (m_IsWreckedVehicle) {
             break;
@@ -4613,7 +4613,7 @@ void CAEVehicleAudioEntity::ProcessVehicle(CPhysical* physical) {
             break;
         }
 
-        UpdateGasPedalAudio(vehicle, vehicle->m_nVehicleType);
+        UpdateGasPedalAudio(vehicle, vehicle->m_baseVehicleType);
         ProcessVehicleRoadNoise(vp);
 
         if (!isStatusSimple) {
@@ -4643,7 +4643,7 @@ void CAEVehicleAudioEntity::ProcessVehicle(CPhysical* physical) {
             break;
         }
 
-        UpdateGasPedalAudio(vehicle, vehicle->m_nVehicleType);
+        UpdateGasPedalAudio(vehicle, vehicle->m_baseVehicleType);
         ProcessVehicleSkidding(vp);
         ProcessVehicleSirenAlarmHorn(vp);
 
@@ -4663,13 +4663,13 @@ void CAEVehicleAudioEntity::ProcessVehicle(CPhysical* physical) {
         break;
     }
     case AE_AIRCRAFT_HELICOPTER: {
-        UpdateGasPedalAudio(vehicle, vehicle->m_nVehicleType);
+        UpdateGasPedalAudio(vehicle, vehicle->m_baseVehicleType);
         ProcessAircraft(vp);
         ProcessRainOnVehicle(vp);
         break;
     }
     case AE_AIRCRAFT_PLANE: {
-        UpdateGasPedalAudio(vehicle, vehicle->m_nVehicleType);
+        UpdateGasPedalAudio(vehicle, vehicle->m_baseVehicleType);
         ProcessAircraft(vp);
         ProcessRainOnVehicle(vp);
         ProcessMovingParts(vp);

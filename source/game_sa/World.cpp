@@ -1224,7 +1224,7 @@ void CWorld::UseDetonator(CPed* creator) {
             continue;
         }
 
-        if (veh.m_pWhoInstalledBombOnMe != creator) {
+        if (veh.m_BombOwner != creator) {
             continue;
         }
 
@@ -1295,7 +1295,7 @@ void CWorld::PrintCarChanges() {
         const auto vehicle = GetVehiclePool()->GetAt(i);
 
         uint16 modelIndex;
-        if (!vehicle || vehicle->m_nVehicleType) {
+        if (!vehicle || vehicle->m_baseVehicleType) {
             modelIndex = 0;
         } else {
             modelIndex = vehicle->m_nModelIndex;

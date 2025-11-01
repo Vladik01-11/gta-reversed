@@ -146,7 +146,7 @@ ModelInfoType CVehicleModelInfo::GetModelType()
 void CVehicleModelInfo::Init()
 {
     CClumpModelInfo::Init();
-    m_nVehicleType     = VEHICLE_TYPE_IGNORE;
+    m_baseVehicleType     = VEHICLE_TYPE_IGNORE;
     m_nWheelModelIndex = -1;
     m_fBikeSteerAngle  = 999.99F;
 }
@@ -165,7 +165,7 @@ RwObject* CVehicleModelInfo::CreateInstance()
     auto clump = reinterpret_cast<RpClump*>(CClumpModelInfo::CreateInstance());
     if (m_pVehicleStruct->m_nNumExtras) {
         RwFrame* frame;
-        if (!IsBike() && !IsBMX() && m_nVehicleType >= VEHICLE_TYPE_BOAT) {
+        if (!IsBike() && !IsBMX() && m_baseVehicleType >= VEHICLE_TYPE_BOAT) {
             frame = RpClumpGetFrame(clump);
         }
         else {
@@ -244,7 +244,7 @@ void CVehicleModelInfo::SetClump(RpClump* clump)
     m_pVehicleStruct = new CVehicleStructure();
     CClumpModelInfo::SetClump(clump);
     SetAtomicRenderCallbacks();
-    CClumpModelInfo::SetFrameIds(ms_vehicleDescs[m_nVehicleType]);
+    CClumpModelInfo::SetFrameIds(ms_vehicleDescs[m_baseVehicleType]);
     SetRenderPipelines();
     PreprocessHierarchy();
     ReduceMaterialsInVehicle();
@@ -258,7 +258,7 @@ void CVehicleModelInfo::SetClump(RpClump* clump)
 // 0x4C7B10
 void CVehicleModelInfo::SetAtomicRenderCallbacks()
 {
-    switch (m_nVehicleType) {
+    switch (m_baseVehicleType) {
     case VEHICLE_TYPE_TRAIN:
         RpClumpForAllAtomics(m_pRwClump, SetAtomicRendererCB_Train, nullptr);
         break;
@@ -318,7 +318,7 @@ void CVehicleModelInfo::GetWheelPosn(int32 wheel, CVector& outVec, bool local) c
 {
     auto frame = CClumpModelInfo::GetFrameFromId(m_pRwClump, ms_wheelFrameIDs[wheel]);
 
-    if (m_nVehicleType != VEHICLE_TYPE_PLANE || local)
+    if (m_baseVehicleType != VEHICLE_TYPE_PLANE || local)
         outVec = *RwMatrixGetPos(RwFrameGetMatrix(frame));
     else {
         auto matrix = RwMatrixCreate();
@@ -562,7 +562,7 @@ void CVehicleModelInfo::PreprocessHierarchy()
     RpAtomic* mainWheelAtomic = nullptr;
     RpAtomic* pTrainBogieAtomic = nullptr;
     auto& handling = gHandlingDataMgr.m_aVehicleHandling[m_nHandlingId];
-    RwObjectNameIdAssocation* nameIdAssoc = ms_vehicleDescs[m_nVehicleType];
+    RwObjectNameIdAssocation* nameIdAssoc = ms_vehicleDescs[m_baseVehicleType];
     while (nameIdAssoc->m_pName) {
         auto flags = nameIdAssoc->AsFlagsUnion();
 
@@ -627,7 +627,7 @@ void CVehicleModelInfo::PreprocessHierarchy()
         nameIdAssoc++;
     }
 
-    nameIdAssoc = ms_vehicleDescs[m_nVehicleType];
+    nameIdAssoc = ms_vehicleDescs[m_baseVehicleType];
     while (nameIdAssoc->m_pName) {
         auto flags = nameIdAssoc->AsFlagsUnion();
 

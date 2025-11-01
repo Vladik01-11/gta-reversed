@@ -1,6 +1,6 @@
 #pragma once
 
-enum class eControllerType {
+enum class eControllerType : int32 {
     KEYBOARD,
     OPTIONAL_EXTRA_KEY,
     MOUSE,

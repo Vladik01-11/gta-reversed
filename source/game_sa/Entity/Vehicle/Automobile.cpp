@@ -159,8 +159,8 @@ CAutomobile::CAutomobile(int32 modelIndex, eVehicleCreatedBy createdBy, bool set
     CVehicle(createdBy),
     m_damageManager{ 0.5f }
 {
-    m_nVehicleType    = VEHICLE_TYPE_AUTOMOBILE;
-    m_nVehicleSubType = VEHICLE_TYPE_AUTOMOBILE;
+    m_baseVehicleType    = VEHICLE_TYPE_AUTOMOBILE;
+    m_vehicleType = VEHICLE_TYPE_AUTOMOBILE;
 
     m_fBurnTimer    = 0.0f;
     m_bDoingBurnout = false;
@@ -379,9 +379,9 @@ CAutomobile::CAutomobile(int32 modelIndex, eVehicleCreatedBy createdBy, bool set
     SetStatus(STATUS_SIMPLE);
     m_nNumPassengers = 0;
 
-    if (m_nDoorLock == CARLOCK_UNLOCKED) {
+    if (m_eDoorLockState == CARLOCK_UNLOCKED) {
         if (IsLawEnforcementVehicle()) {
-            m_nDoorLock = CARLOCK_COP_CAR;
+            m_eDoorLockState = CARLOCK_COP_CAR;
         }
     }
 
@@ -472,7 +472,7 @@ void CAutomobile::ProcessControl()
     if (m_pDriver) {
         if (!vehicleFlags.bDriverLastFrame && m_nBombOnBoard == BOMB_IGNITION_ACTIVATED) {
             m_wBombTimer = 1000;
-            m_pWhoDetonatedMe = m_pWhoInstalledBombOnMe;
+            m_pWhoDetonatedMe = m_BombOwner;
             CEntity::SafeRegisterRef(m_pWhoDetonatedMe);
         }
         vehicleFlags.bDriverLastFrame = true;
@@ -1983,35 +1983,35 @@ void CAutomobile::ProcessControlInputs(uint8 playerNum) {
     vehicleFlags.bIsHandbrakeOn = automaticallyHandBrake || plyrpad->GetHandBrake() != 0;
 
     //> 0x6AD7BD - Update steer angle (And  possible control input too)
-    std::tie(m_fRawSteerAngle, m_nLastControlInput) = [&, this]() -> std::pair<float, eControllerType> {
+    std::tie(m_fSteer, m_nLastControlInput) = [&, this]() -> std::pair<float, eControllerType> {
         // Calculates steering delta for this frame
         const auto GetSteeringDeltaForFrame = [&, this] {
-            return (-(float)plyrpad->GetSteeringLeftRight() / 128.f - m_fRawSteerAngle) / 5.f * CTimer::GetTimeStep();
+            return (-(float)plyrpad->GetSteeringLeftRight() / 128.f - m_fSteer) / 5.f * CTimer::GetTimeStep();
         };
     
         if (!CCamera::m_bUseMouse3rdPerson || !m_bEnableMouseSteering) {
-            return { m_fRawSteerAngle + GetSteeringDeltaForFrame(), eControllerType::KEYBOARD };
+            return { m_fSteer + GetSteeringDeltaForFrame(), eControllerType::KEYBOARD };
         }
 
         if (CPad::NewMouseControllerState.m_AmountMoved.x == 0.f && (m_nLastControlInput != eControllerType::MOUSE || plyrpad->GetSteeringLeftRight() != 0)) { // Simplified `if` here
-            return { m_fRawSteerAngle + GetSteeringDeltaForFrame(), eControllerType::KEYBOARD };
+            return { m_fSteer + GetSteeringDeltaForFrame(), eControllerType::KEYBOARD };
         }
 
-        if (CPad::NewMouseControllerState.m_AmountMoved.x != 0.f || m_fRawSteerAngle != 0.f) {
+        if (CPad::NewMouseControllerState.m_AmountMoved.x != 0.f || m_fSteer != 0.f) {
             if (!plyrpad->NewState.m_bVehicleMouseLook) {
-                return { m_fRawSteerAngle - CPad::NewMouseControllerState.m_AmountMoved.x * 0.0035f, eControllerType::MOUSE };
+                return { m_fSteer - CPad::NewMouseControllerState.m_AmountMoved.x * 0.0035f, eControllerType::MOUSE };
             }
 
-            if (plyrpad->NewState.m_bVehicleMouseLook || std::abs(m_fRawSteerAngle) <= 0.7f) { // Slowly steer back to 0
-                return { m_fRawSteerAngle * std::pow(0.975f, CTimer::GetTimeStep()), eControllerType::MOUSE };
+            if (plyrpad->NewState.m_bVehicleMouseLook || std::abs(m_fSteer) <= 0.7f) { // Slowly steer back to 0
+                return { m_fSteer * std::pow(0.975f, CTimer::GetTimeStep()), eControllerType::MOUSE };
             }
 
-            return { m_fRawSteerAngle, eControllerType::MOUSE };
+            return { m_fSteer, eControllerType::MOUSE };
         }
 
-        return { m_fRawSteerAngle, m_nLastControlInput }; // No change
+        return { m_fSteer, m_nLastControlInput }; // No change
     }();
-    m_fRawSteerAngle = std::clamp(m_fRawSteerAngle, -1.f, 1.f);
+    m_fSteer = std::clamp(m_fSteer, -1.f, 1.f);
 
     //> Calculate gas/brake pedal values
     std::tie(m_GasPedal, m_BrakePedal) = [&, this]() -> std::pair<float, float> {
@@ -2077,7 +2077,7 @@ void CAutomobile::ProcessControlInputs(uint8 playerNum) {
         }
     }
 
-    m_fSteerAngle = DegreesToRadians(m_pHandlingData->m_fSteeringLock * std::copysignf(std::powf(m_fRawSteerAngle, 2), m_fRawSteerAngle)); // sign preserving pow
+    m_fSteerAngle = DegreesToRadians(m_pHandlingData->m_fSteeringLock * std::copysignf(std::powf(m_fSteer, 2), m_fSteer)); // sign preserving pow
 
     //> 0x6ADD28 - Rear wheel steer
     if (m_pHandlingData->m_bHbRearwheelSteer) {
@@ -2810,7 +2810,7 @@ void CAutomobile::DoBurstAndSoftGroundRatios()
 // 0x6A3770
 void CAutomobile::PlayCarHorn()
 {
-    if (m_nAlarmState && m_nAlarmState != -1 && GetStatus() != STATUS_WRECKED || m_HornCounter) {
+    if (m_CarAlarmState && m_CarAlarmState != -1 && GetStatus() != STATUS_WRECKED || m_HornCounter) {
         return;
     }
 
@@ -4140,7 +4140,7 @@ void CAutomobile::CustomCarPlate_BeforeRenderingStart(const CVehicleModelInfo& m
     if (mi.m_pPlateMaterial) {
         renderLicensePlateTexture = RpMaterialGetTexture(mi.m_pPlateMaterial);
         RwTextureAddRef(renderLicensePlateTexture);
-        RpMaterialSetTexture(mi.m_pPlateMaterial, m_pCustomCarPlate);
+        RpMaterialSetTexture(mi.m_pPlateMaterial, m_CustomPlateTexture);
     }
 }
 
@@ -4938,7 +4938,7 @@ void CAutomobile::ProcessCarOnFireAndExplode(bool bExplodeImmediately) {
     };
 
     if (m_fHealth < 250.f && GetStatus() != STATUS_WRECKED && !vehicleFlags.bIsDrowning) {
-        const auto isSubPlaneOrHeli = notsa::contains({ VEHICLE_TYPE_PLANE, VEHICLE_TYPE_HELI }, m_nVehicleSubType);
+        const auto isSubPlaneOrHeli = notsa::contains({ VEHICLE_TYPE_PLANE, VEHICLE_TYPE_HELI }, m_vehicleType);
 
         auto partFxToUse = !m_pFireParticle && !isSubPlaneOrHeli ? 1 : 0;
 
@@ -5639,8 +5639,8 @@ void CAutomobile::ScanForCrimes() {
     if (   plyrveh
         && plyrveh->IsAutomobile()
         && plyrveh->GetStatus() != STATUS_WRECKED
-        && plyrveh->m_nAlarmState
-        && plyrveh->m_nAlarmState != -1
+        && plyrveh->m_CarAlarmState
+        && plyrveh->m_CarAlarmState != -1
         && DistanceBetweenPointsSquared(GetPosition(), plyrveh->GetPosition()) < sq(20.f)
     ) {
         FindPlayerPed()->SetWantedLevelNoDrop(1);
@@ -5971,7 +5971,7 @@ void CAutomobile::DoHeliDustEffect(float timeConstMult, float fxMaxZMult) {
         return;
     }
 
-    switch (m_nVehicleSubType) {
+    switch (m_vehicleType) {
     case eVehicleType::VEHICLE_TYPE_HELI: {
         if (m_fHeliRotorSpeed < 0.1125f) {
             KillDustFx();

@@ -429,7 +429,7 @@ bool CModelInfo::IsFakePlaneModel(int32 index)
     if (mi->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
         return false;
 
-    return mi->AsVehicleModelInfoPtr()->m_nVehicleType == VEHICLE_TYPE_FPLANE;
+    return mi->AsVehicleModelInfoPtr()->m_baseVehicleType == VEHICLE_TYPE_FPLANE;
 }
 
 // 0x4C5BC0
@@ -497,5 +497,5 @@ int32 CModelInfo::IsVehicleModelType(int32 index)
     if (mi->GetModelType() != ModelInfoType::MODEL_INFO_VEHICLE)
         return -1;
 
-    return mi->AsVehicleModelInfoPtr()->m_nVehicleType;
+    return mi->AsVehicleModelInfoPtr()->m_baseVehicleType;
 }

@@ -50,8 +50,8 @@ void CBoat::InjectHooks() {
 CBoat::CBoat(int32 modelIndex, eVehicleCreatedBy createdBy) : CVehicle(createdBy) {
     memset(&m_boatFlap, 0, sizeof(m_boatFlap));
     CVehicleModelInfo* mi = CModelInfo::GetModelInfo(modelIndex)->AsVehicleModelInfoPtr();
-    m_nVehicleType = VEHICLE_TYPE_BOAT;
-    m_nVehicleSubType = VEHICLE_TYPE_BOAT;
+    m_baseVehicleType = VEHICLE_TYPE_BOAT;
+    m_vehicleType = VEHICLE_TYPE_BOAT;
     m_vecBoatMoveForce.Set(0.0F, 0.0F, 0.0F);
     m_vecBoatTurnForce.Set(0.0F, 0.0F, 0.0F);
     m_nPadNumber = 0;
@@ -86,7 +86,7 @@ CBoat::CBoat(int32 modelIndex, eVehicleCreatedBy createdBy) : CVehicle(createdBy
     m_fSteerAngle = 0.0f;
     m_GasPedal = 0.0f;
     m_BrakePedal = 0.0f;
-    m_fRawSteerAngle = 0.0f;
+    m_fSteer = 0.0f;
     field_63C = 0;
     m_fLastWaterImmersionDepth = 7.0F;
     field_604 = 0;
@@ -927,25 +927,25 @@ void CBoat::ProcessControlInputs(uint8 ucPadNum) {
     if (CCamera::m_bUseMouse3rdPerson && CVehicle::m_bEnableMouseSteering) {
         auto bChangedInput = CVehicle::m_nLastControlInput != eControllerType::MOUSE || pad->GetSteeringLeftRight();
         if (CPad::NewMouseControllerState.m_AmountMoved.x == 0.0F && bChangedInput) { // No longer using mouse controls
-            m_fRawSteerAngle += (static_cast<float>(-pad->GetSteeringLeftRight()) * (1.0F / 128.0F) - m_fRawSteerAngle) * 0.2F * CTimer::GetTimeStep();
+            m_fSteer += (static_cast<float>(-pad->GetSteeringLeftRight()) * (1.0F / 128.0F) - m_fSteer) * 0.2F * CTimer::GetTimeStep();
             CVehicle::m_nLastControlInput = eControllerType::KEYBOARD;
-        } else if (m_fRawSteerAngle != 0.0F || m_fRawSteerAngle != 0.0F) { // todo: doesn't match OG and duplicateExpression: Same expression on both sides of '||'.
+        } else if (m_fSteer != 0.0F || m_fSteer != 0.0F) { // todo: doesn't match OG and duplicateExpression: Same expression on both sides of '||'.
             CVehicle::m_nLastControlInput = eControllerType::MOUSE;
             if (!pad->NewState.m_bVehicleMouseLook) {
-                m_fRawSteerAngle += CPad::NewMouseControllerState.m_AmountMoved.x * -0.0035F;
+                m_fSteer += CPad::NewMouseControllerState.m_AmountMoved.x * -0.0035F;
             }
 
-            if (std::fabs(m_fRawSteerAngle) < 0.5f || pad->NewState.m_bVehicleMouseLook) {
-                m_fRawSteerAngle *= std::pow(0.985F, CTimer::GetTimeStep());
+            if (std::fabs(m_fSteer) < 0.5f || pad->NewState.m_bVehicleMouseLook) {
+                m_fSteer *= std::pow(0.985F, CTimer::GetTimeStep());
             }
         }
     } else {
-        m_fRawSteerAngle += (static_cast<float>(-pad->GetSteeringLeftRight()) * (1.0F / 128.0F) - m_fRawSteerAngle) * 0.2F * CTimer::GetTimeStep();
+        m_fSteer += (static_cast<float>(-pad->GetSteeringLeftRight()) * (1.0F / 128.0F) - m_fSteer) * 0.2F * CTimer::GetTimeStep();
         CVehicle::m_nLastControlInput = eControllerType::KEYBOARD;
     }
 
-    m_fRawSteerAngle = std::clamp(m_fRawSteerAngle, -1.0F, 1.0F);
-    m_fSteerAngle = DegreesToRadians(m_pHandlingData->m_fSteeringLock * std::copysignf(std::powf(m_fRawSteerAngle, 2), m_fRawSteerAngle));
+    m_fSteer = std::clamp(m_fSteer, -1.0F, 1.0F);
+    m_fSteerAngle = DegreesToRadians(m_pHandlingData->m_fSteeringLock * std::copysignf(std::powf(m_fSteer, 2), m_fSteer));
 }
 
 // 0x6F01D0

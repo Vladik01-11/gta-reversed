@@ -97,7 +97,7 @@ void CTaskSimpleCarCloseDoorFromOutside::StartAnim(CPed const* ped) {
             const auto player = static_cast<const CPlayerPed*>(ped);
             const auto pad    = player->GetPadFromPlayer();
 
-            if (!pad->DisablePlayerControls && m_veh->m_nDoorLock != CARLOCK_FORCE_SHUT_DOORS) {
+            if (!pad->DisablePlayerControls && m_veh->m_eDoorLockState != CARLOCK_FORCE_SHUT_DOORS) {
                 if (   pad->GetTarget()
                     || pad->GetLeftStickX() || pad->GetLeftStickY()
                     || pad->NewState.DPadUp || pad->NewState.DPadDown

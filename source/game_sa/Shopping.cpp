@@ -672,7 +672,7 @@ void CShopping::StoreClothesState() {
 // 0x49B280
 void CShopping::StoreVehicleMods() {
     const auto veh = FindPlayerVehicle();
-    std::copy_n(veh->m_anUpgrades.begin(), veh->m_anUpgrades.size(), gStoredVehicleMods.begin());
+    std::copy_n(veh->m_upgrades.begin(), veh->m_upgrades.size(), gStoredVehicleMods.begin());
 
     if (!veh->IsAutomobile())
         return;
@@ -723,7 +723,7 @@ void CShopping::RestoreVehicleMods() {
     const auto veh = FindPlayerVehicle();
 
     for (auto&& [i, storedMod] : rngv::enumerate(gStoredVehicleMods)) {
-        auto& upgrade = veh->m_anUpgrades[i];
+        auto& upgrade = veh->m_upgrades[i];
 
         if (upgrade != -1) {
             veh->RemoveVehicleUpgrade(upgrade);

@@ -61,7 +61,7 @@ void CBike::InjectHooks() {
 // 0x6BF430
 CBike::CBike(int32 modelIndex, eVehicleCreatedBy createdBy) : CVehicle(createdBy) {
     auto mi = CModelInfo::GetModelInfo(modelIndex)->AsVehicleModelInfoPtr();
-    if (mi->m_nVehicleType == VEHICLE_TYPE_BIKE) {
+    if (mi->m_baseVehicleType == VEHICLE_TYPE_BIKE) {
         const auto& animationStyle = CAnimManager::GetAnimBlocks()[mi->GetAnimFileIndex()].GroupId;
         m_RideAnimData.AnimGroup = animationStyle;
         if (animationStyle < ANIM_GROUP_BIKES || animationStyle > ANIM_GROUP_WAYFARER) {
@@ -69,8 +69,8 @@ CBike::CBike(int32 modelIndex, eVehicleCreatedBy createdBy) : CVehicle(createdBy
         }
     }
 
-    m_nVehicleSubType = VEHICLE_TYPE_BIKE;
-    m_nVehicleType = VEHICLE_TYPE_BIKE;
+    m_vehicleType = VEHICLE_TYPE_BIKE;
+    m_baseVehicleType = VEHICLE_TYPE_BIKE;
 
     m_BlowUpTimer = 0.0f;
     m_nBrakesOn = false;
@@ -100,7 +100,7 @@ CBike::CBike(int32 modelIndex, eVehicleCreatedBy createdBy) : CVehicle(createdBy
     m_GasPedal = 0.0f;
     m_BrakePedal = 0.0f;
     m_Damager = nullptr;
-    m_pWhoInstalledBombOnMe = nullptr;
+    m_BombOwner = nullptr;
     m_GasPedalAudioRevs = 0.0f;
     m_fTyreTemp = 1.0f;
     m_fBrakingSlide = 0.0f;

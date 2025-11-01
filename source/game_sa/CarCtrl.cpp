@@ -444,7 +444,7 @@ void CCarCtrl::GetAIPlaneToDoDogFightAgainstPlayer(CAutomobile* automobile) {
 CVehicle* CCarCtrl::GetNewVehicleDependingOnCarModel(int32 modelId, uint8 createdBy) {
     return plugin::CallAndReturn<CVehicle*, 0x421440, int32, uint8>(modelId, createdBy);
     /*
-    switch (CModelInfo::GetModelInfo(modelId)->AsVehicleModelInfoPtr()->m_nVehicleType) {
+    switch (CModelInfo::GetModelInfo(modelId)->AsVehicleModelInfoPtr()->m_baseVehicleType) {
     case VEHICLE_TYPE_MTRUCK:
         return new CMonsterTruck(modelId, createdBy);
     case VEHICLE_TYPE_QUAD:

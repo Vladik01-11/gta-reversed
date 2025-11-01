@@ -25,7 +25,7 @@ void CHeli::InjectHooks() {
 
 // 0x6C4190
 CHeli::CHeli(int32 modelIndex, eVehicleCreatedBy createdBy) : CAutomobile(modelIndex, createdBy, true) {
-    m_nVehicleSubType = VEHICLE_TYPE_HELI;
+    m_vehicleType = VEHICLE_TYPE_HELI;
 
     m_fLeftRightSkid           = 0.0f;
     m_fSteeringUpDown          = 0.0f;
