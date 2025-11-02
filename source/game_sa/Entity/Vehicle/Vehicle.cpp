@@ -27,31 +27,138 @@
 #include "Shadows.h"
 #include "PedClothesDesc.h"
 
-uint32& planeRotorDmgTimeMS = *(uint32*)0xC1CC1C;
+// float carLodLerp; // In Mobile
 
-float& fBurstTyreMod = *(float*)0x8D34B4;                // 0.13f
-float& fBurstSpeedMax = *(float*)0x8D34B8;               // 0.3f
-float& CAR_NOS_EXTRA_SKID_LOSS = *(float*)0x8D34BC;      // 0.9f
-float& WS_TRAC_FRAC_LIMIT = *(float*)0x8D34C0;           // 0.3f
-float& WS_ALREADY_SPINNING_LOSS = *(float*)0x8D34C4;     // 0.2f
-float& fBurstBikeTyreMod = *(float*)0x8D34C8;            // 0.05f
-float& fBurstBikeSpeedMax = *(float*)0x8D34CC;           // 0.12f
-float& fTweakBikeWheelTurnForce = *(float*)0x8D34D0;     // 2.0f
-float& AUTOGYRO_ROTORSPIN_MULT = *(float*)0x8D34D4;      // 0.006f
-float& AUTOGYRO_ROTORSPIN_MULTLIMIT = *(float*)0x8D34D8; // 0.25f
-float& AUTOGYRO_ROTORSPIN_DAMP = *(float*)0x8D34DC;      // 0.997f
-float& AUTOGYRO_ROTORLIFT_MULT = *(float*)0x8D34E0;      // 4.5f
-float& AUTOGYRO_ROTORLIFT_FALLOFF = *(float*)0x8D34E4;   // 0.75f
-float& AUTOGYRO_ROTORTILT_ANGLE = *(float*)0x8D34E8;     // 0.25f
-float& ROTOR_SEMI_THICKNESS = *(float*)0x8D34EC;         // 0.05f
-float* gfSpeedMult = (float*)0x8D34F8;                   // float fSpeedMult[5] = { 0.8f, 0.75f, 0.85f, 0.9f, 0.85f, 0.85f }
-float& fDamagePosSpeedShift = *(float*)0x8D3510;         // 0.4f
-float& DIFF_LIMIT = *(float*)0x8D35B4;                   // 0.8f
-float& DIFF_SPRING_MULT_X = *(float*)0x8D35B8;           // 0.05f
-float& DIFF_SPRING_MULT_Y = *(float*)0x8D35BC;           // 0.05f
-float& DIFF_SPRING_MULT_Z = *(float*)0x8D35C0;           // 0.1f
-float& DIFF_SPRING_COMPRESS_MULT = *(float*)0x8D35C4;    // 2.0f
-CVector (&VehicleGunOffset)[14] = *(CVector(*)[14])0x8D35D4; // maybe [12]
+float fBurstTyreMod = 0.13f; // 0x8D34B4
+float fBurstSpeedMax = 0.3f; // 0x8D34B8
+float CAR_NOS_EXTRA_SKID_LOSS = 0.9f; // 0x8D34BC, unused
+float WS_TRAC_FRAC_LIMIT = 0.3f; // 0x8D34C0
+float WS_ALREADY_SPINNING_LOSS = 0.2f; // 0x8D34C4
+
+float fBurstBikeTyreMod = 2.0f; // 0x8D34D0
+float fBurstBikeSpeedMax = 0.12f; // 0x8D34CC
+float fTweakBikeWheelTurnForce = 0.05f; // 0x8D34C8
+
+float AUTOGYRO_ROTORSPIN_MULT = 0.25f; // 0x8D34E8
+float AUTOGYRO_ROTORSPIN_MULTLIMIT = 0.75f; // 0x8D34E4
+float AUTOGYRO_ROTORSPIN_DAMP = 4.5f; // 0x8D34E0
+float AUTOGYRO_ROTORLIFT_MULT = 0.997f; // 0x8D34DC
+float AUTOGYRO_ROTORLIFT_FALLOFF = 0.25f; // 0x8D34D8
+float AUTOGYRO_ROTORTILT_ANGLE = 0.006f; // 0x8D34D4
+
+float PLANE_STALL_ANGLE = 0.7330383f; // TODO: magisk value
+
+CColModel TestBladeCol; // 0xC1CD38
+CCollisionData TestBladeColData; // 0xC1CD68
+CColSphere TestBladeColSphere; // 0xC1CD98
+float ROTOR_SEMI_THICKNESS = 0.5f; // 0x8D34EC
+
+float ROTOR_TURN_SPEED = 0.2f; // 0x871D9C
+float ROTOR_DISGUARD_MULT = 0.3f; // 0x871DA0
+float ROTOR_COL_ELASTICITY = 1.0f; // 0x871DA4
+float ROTOR_COL_TURNMULT = -0.0005f; // 0x871DA8
+float ROTOR_DEFAULT_DAMAGE = 100.0f; // 0x871DAC
+// val?
+float ROTOR_AUDIO_IMPACT_MAG = 0.15f; // 0x871DB0
+float ROTOR_AUDIO_IMPACT_MAG_REMOTE = 0.15f; // 0x871DB4
+float ROTOR_AUDIO_IMPACT_PLAYER_POS_OFFSET = 4.0f; // 0x871DB8
+int32 ROTOR_AUDIO_IMPACT_TIME_MIN = 150; // 0x8D34F0
+int32 ROTOR_AUDIO_IMPACT_TIME_MAX = 250; // 0x8D34F4
+uint32 ROTOR_LAST_COL_TIME; // 0xC1CC1C
+
+float SEAPLANE_UDOWN_MULT = 0.03f; // 0x871DBC
+float SEAPLANE_H_BUOY_LIMIT = 0.4f; // 0x871DC0
+float SEAPLANE_H_ANGLE_LIMIT = -0.5f; // 0x871DC4
+float SEAPLANE_H_SPEED_LIMIT = -0.15f; // 0x871DC8
+float SEAPLANE_H_TURN_MULT = -0.00017f; // 0x871DCC
+float SEAPLANE_H_FWD_MULT = -0.5f; // 0x871DD0
+float SEAPLANE_ENDO_TIME = 300.0f; // 0x871DD4
+// val?
+float BOAT_COLLISION_TURFORCEMULT = 0.4f; // 0x871DD8
+// val x2?
+
+float fSeaPlaneWaterResistance = 30.0f; // 0x871DDC
+
+float BOAT_SPLASH_FORCE_MULT = 0.075f; // 0x871DE0
+float BOAT_SPLASH_FORCE_CAP = 1.0f; // 0x871DE4
+// val?
+float SEAPLANE_SPLASH_FORCE_MULT = 3.0f; // 0x871DE8
+float SEAPLANE_SPLASH_FORCE_CAP = 0.5f; // 0x871DEC
+
+float fSpeedMult[6] = { 0.8f, 0.75f, 0.85f, 0.9f, 0.85f, 0.85f }; // 0x8D34F8
+float fDamagePosSpeedShift = 0.4f; // 0x8D3510, unused
+
+RpClump* gpClumpToAddTo; // 0xC1CB58
+
+// this vals - unused?
+float DIFF_LIMIT = 0.8f; // 0x8D35B4
+float DIFF_SPRING_MULT_X = 0.05f; // 0x8D35B8
+float DIFF_SPRING_MULT_Y = 0.05f; // 0x8D35BC
+float DIFF_SPRING_MULT_Z = 0.1f; // 0x8D35C0
+float DIFF_SPRING_COMPRESS_MULT = 2.0f; // 0x8D35C4
+float DIFF_DAMP_MULT_X = -0.0f; // dont
+float DIFF_DAMP_MULT_Y = -0.1f; // 0x8D35C8
+float DIFF_DAMP_MULT_Z = -0.0f; // dont
+float ROT_DAMP_MULT_X = -0.02f; // 0x8D35CC
+float ROT_DAMP_MULT_Y = -0.0f; // dont
+float ROT_DAMP_MULT_Z = -0.03f; // 0x8D35D0
+
+float TOW_TRAILER_MAX_POS_DIFF = 1.0f; // 0x871DF0
+// val x4?
+float TOW_TRAILER_APPLY_DIST_TO_VEL = 0.3f; // 0x871DF4
+
+float TOW_TRACTOR_APPLY_VEL_RATIO = 0.5f; // 0x871DF8
+float TOW_TRACTOR_APPLY_DIST_TO_VEL = 0.1f; // 0x871DFC
+
+const float s_HunterAutoAimAngle = 25.0f; // 0x871E00
+const float s_SeaSparrowAutoAimAngle = 10.0f; // 0x871E04
+const float s_MustangAutoAimAngle = 15.0f; // 0x871E08
+const float s_HarrierAutoAimAngle = 15.0f; // 0x871E0C
+const float s_TornadoAutoAimAngle = 15.0f; // 0x871E10
+const float s_MaverickAutoAimAngle = 15.0f; // 0x871E14
+const float s_PoliceMaverickAutoAimAngle = 15.0f; // 0x871E18
+const float s_CargoBobAutoAimAngle = 15.0f; // 0x871E1C
+const float s_RcTigerAutoAimAngle = 20.0f; // 0x871E20
+const float s_RcBaronAutoAimAngle = 30.0f; // 0x871E24
+
+const CVector s_HunterGunPos = CVector(0.0f, 4.41f, -1.27f); // 0x8D35D4
+const CVector s_MaverickGunPos = CVector(0.0f, 2.85f, -0.5f); // 0x8D35E0
+const CVector s_PoliceMaverickGunPos = CVector(0.0f, 2.85f, -0.5f); // 0x8D35EC
+const CVector s_SeaSparrowGunPos = CVector(-0.5f, 2.4f, -0.785f); // 0x8D35F8
+const CVector s_CargoBobGunPos = CVector(0.0f, 6.87f, -1.65f); // 0x8D3604
+const CVector s_MustangGunPos1 = CVector(2.2f, 1.5f, -0.58f); // 0x8D3610
+const CVector s_MustangGunOffset = CVector(0.2f, 0.0f, 0.0f); // 0x8D361C
+const CVector s_HarrierGunPos = CVector(1.48f, 0.44f, -0.52f); // 0x8D3628
+const CVector s_TornadoGunPos = CVector(0.0f, 0.0f, 0.0f); // 0xC1CC2C
+const CVector s_RCBaronGunPos = CVector(0.0f, 0.45f, 0.0f); // 0x8D3634
+
+const CVector s_HunterOrdnancePos = CVector(2.17f, 1.0f, -0.8f); // 0x8D3640
+const CVector s_SeaSparrowOrdnancePos = CVector(0.0f, 0.0f, 0.0f); // 0xC1CC38
+const CVector s_MustangOrdnancePos = CVector(2.19f, 1.5f, -0.58f); // 0x8D364C
+const CVector s_HarrierOrdnancePos1 = CVector(3.7f, 0.98f, -1.02f); // 0x8D3658
+const CVector s_HarrierOrdnancePos2 = CVector(3.92f, 0.98f, -1.02f); // 0x8D3664
+const CVector s_TornadoOrdnancePos = CVector(0.0f, 0.0f, 0.0f); // 0xC1CC44
+const CVector s_RCBaronOrdnancePos = CVector(0.0f, 0.0f, 0.0f); // 0xC1CC50
+
+float HEADLIGHT_ZR350_ANGLE = 0.69813174f; // 0x871E28, TODO: magisk value
+float HEADLIGHT_ZR350_RATE = 0.01f; // 0x871E2C
+
+float flt_871E30 = 0.32f; // 0x871E30
+float flt_871E34 = 0.16f; // 0x871E34
+float flt_871E38 = 0.000065f; // 0x871E38
+float flt_871E64 = 15.9375f; // 0x871E64
+float flt_871E78 = 0.00002f; // 0x871E78
+
+float flt_8D3670 = 0.5f; // 0x8D3670
+float flt_8D3674 = 0.85f; // 0x8D3674
+float flt_8D3678 = 0.25f; // 0x8D3678
+float flt_8D367C = 0.5f; // 0x8D367C
+float flt_8D3680 = 2.5f; // 0x8D3680
+float flt_8D3684 = 0.4f; // 0x8D3684
+float flt_8D3688 = 0.2f; // 0x8D3688
+float flt_8D368C = 0.1f; // 0x8D368C
+float green = 0.02f; // 0x8D3690
+float blue = 0.02f; // 0x8D3694
 
 void CVehicle::InjectHooks() {
     RH_ScopedVirtualClass(CVehicle, 0x871e80, 66);
@@ -2294,16 +2401,13 @@ RwFrame* RemoveObjectsCB(RwFrame* frame, void* data) {
     return frame;
 }
 
-// 0x6D3450
-static auto& CopyObjectsCB_TargetClump = *(RpClump**)0xC1CB58;
-
 RwObject* CopyObjectsCB(RwObject* object, void* data) {
     const auto frame = (RwFrame*)data;
 
     if (RwObjectGetType(object) == rpATOMIC) {
         const auto atomic = (RpAtomic*)object;
         const auto clone = RpAtomicClone(atomic);
-        RpClumpAddAtomic(CopyObjectsCB_TargetClump, clone);
+        RpClumpAddAtomic(gpClumpToAddTo, clone);
         RpAtomicSetFrame(clone, frame);
     }
 
@@ -2462,7 +2566,7 @@ void CVehicle::RemoveReplacementUpgrade(int32 componentId) {
     RwFrameForAllObjects(frameOfUpgrade, RemoveObjectsCB, &frameOfUpgrade);
     RwFrameForAllChildren(frameOfUpgrade, RemoveObjectsCB, &frameOfUpgrade);
 
-    CopyObjectsCB_TargetClump = m_pRwClump;
+    gpClumpToAddTo = m_pRwClump;
     RwFrameForAllObjects(
         CClumpModelInfo::GetFrameFromId(GetModelInfo()->m_pRwClump, componentId),
         CopyObjectsCB,
@@ -2737,7 +2841,7 @@ CVector CVehicle::GetPlaneGunsPosition(int32 num) {
     }
 
     switch (m_nModelIndex) {
-    case MODEL_HUNTER:   return VehicleGunOffset[0];
+    case MODEL_HUNTER:   return s_HunterGunPos;
     case MODEL_SEASPAR:  return { -0.5f, 2.4f, -0.785f }; // 0x8D35F8
     case MODEL_RCBARON:  return { 0.0f, 0.45f, 0.0f };    // 0x8D3634
     case MODEL_RUSTLER:  return CVector{ 2.19f, 1.5f, -0.58f } + CVector{ 0.2f, 0.0f, 0.0f } * (float)(num - 1); // 0x8D3610 (posn), 0x8D361C (offset)
@@ -4563,10 +4667,6 @@ void CVehicle::FillVehicleWithPeds(bool setClothesToAfro) {
 
 // 0x6E2E50
 bool CVehicle::DoBladeCollision(CVector pos, CMatrix& matrix, int16 rotorType, float radius, float damageMult) {
-    static auto& s_TestBladeCol = StaticRef<CColModel>(0xC1CD38);
-    static auto& s_TestBladeColData = StaticRef<CCollisionData>(0xC1CD68);
-    static auto& s_TestBladeColSphere = StaticRef<CColSphere>(0xC1CD98);
-
     // Set-up collision model for the blade
     {
         CVector bbMin(pos - CVector(radius, radius, radius));

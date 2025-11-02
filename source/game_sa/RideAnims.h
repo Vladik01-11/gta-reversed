@@ -9,6 +9,7 @@ struct CRideAnims {
     AnimationId back;
 };
 
+// in Vehicle.cpp
 static inline CRideAnims aDriveAnimIdsLow     = { ANIM_ID_CAR_LSIT,     ANIM_ID_DRIVE_LO_L,        ANIM_ID_DRIVE_LO_R,        ANIM_ID_CAR_LB           }; // 0x8D3514
 static inline CRideAnims aDriveAnimIdsBoat    = { ANIM_ID_DRIVE_BOAT,   ANIM_ID_DRIVE_BOAT_L,      ANIM_ID_DRIVE_BOAT_R,      ANIM_ID_DRIVE_BOAT_BACK  }; // 0x8D3524
 static inline CRideAnims aDriveAnimIdsBad     = { ANIM_ID_CAR_SIT_WEAK, ANIM_ID_DRIVE_L_WEAK,      ANIM_ID_DRIVE_R_WEAK,      ANIM_ID_CAR_LB_WEAK      }; // 0x8D3534
