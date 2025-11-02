@@ -761,7 +761,7 @@ public:
     void ProcessSirenAndHorn(bool hornAvailable);
 
     int32 GetVehicleCreatedBy() const { return m_nCreatedBy; }
-    void SetVehicleCreatedBy(eVehicleCreatedBy createdBy); // Modificated In Mobile
+    void SetVehicleCreatedBy(eVehicleCreatedBy createdBy);
     bool GetIsLawEnforcer() const { return vehicleFlags.bIsLawEnforcer; }
 
     bool CanPedLeanOut(CPed* ped) const;

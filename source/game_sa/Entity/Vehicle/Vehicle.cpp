@@ -3107,8 +3107,9 @@ bool CVehicle::CanPedLeanOut(CPed* ped) const {
     }
 }
 
+// Modificated In Mobile
 // 0x6D5D70
-void CVehicle::SetVehicleCreatedBy(eVehicleCreatedBy createdBy /*, bool dontAdd - Mobile */) {
+void CVehicle::SetVehicleCreatedBy(eVehicleCreatedBy createdBy /*, bool dontAdd*/) {
     // Only Mobile
     /*
     if (dontAdd) {
