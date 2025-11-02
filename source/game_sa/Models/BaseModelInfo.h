@@ -36,6 +36,7 @@ enum eModelInfoSpecialType : uint8 {
     BREAKABLE_STATUE = 11,
 };
 
+// VehicleUpgradePosn?
 enum class eVehicleMod : uint8 {
     // Upgrades
     UPGRADE_BONNET            = 0,  // 0x0

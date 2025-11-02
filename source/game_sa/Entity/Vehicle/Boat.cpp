@@ -560,8 +560,7 @@ void CBoat::ProcessControl() {
     auto fDamagePower = m_fDamageIntensity * m_pHandlingData->m_fCollisionDamageMultiplier;
     if (fDamagePower > 25.0F && GetStatus() != STATUS_WRECKED && m_fHealth >= 250.0F) {
         auto fSavedHealth = m_fHealth;
-        if (GetStatus() == STATUS_PLAYER && CStats::GetPercentageProgress() >= 100.0F)
-            fDamagePower *= 0.5F;
+        ReduceVehicleDamage(fDamagePower);
 
         auto fGivenDamage = fDamagePower;
         if (this == FindPlayerVehicle()->AsBoat()) {

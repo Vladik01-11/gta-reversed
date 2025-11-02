@@ -116,19 +116,19 @@ public:
     void GetComponentWorldPosition(int32 componentId, CVector& outPos) override;
     void ProcessOpenDoor(CPed* ped, uint32 doorComponentId, uint32 animGroup, uint32 animId, float fTime) override;
 
-    bool IsDoorReady(eDoors door) override { return true; }      // 0x6B58E0
-    bool IsDoorFullyOpen(eDoors door) override { return false; } // 0x6B58F0
-    bool IsDoorClosed(eDoors door) override { return false; }    // 0x6B5900
-    bool IsDoorMissing(eDoors door) override { return true; }    // 0x6B5910
-    bool IsDoorReadyU32(uint32 door) override { return true; }      // 0x6B5920
-    bool IsDoorFullyOpenU32(uint32 door) override { return false; } // 0x6B5930
-    bool IsDoorClosedU32(uint32 door) override { return false; }    // 0x6B5940
-    bool IsDoorMissingU32(uint32 door) override { return true; }    // 0x6B5950
+    bool IsDoorReady(eDoors door) const override { return true; }         // 0x6B58E0
+    bool IsDoorFullyOpen(eDoors door) const override { return false; }    // 0x6B58F0
+    bool IsDoorClosed(eDoors door) const override { return false; }       // 0x6B5900
+    bool IsDoorMissing(eDoors door) const override { return true; }       // 0x6B5910
+    bool IsDoorReadyU32(uint32 door) const override { return true; }      // 0x6B5920
+    bool IsDoorFullyOpenU32(uint32 door) const override { return false; } // 0x6B5930
+    bool IsDoorClosedU32(uint32 door) const override { return false; }    // 0x6B5940
+    bool IsDoorMissingU32(uint32 door) const override { return true; }    // 0x6B5950
 
     bool IsRoomForPedToLeaveCar(uint32 door, CVector* pvecCarJackOffset) override { return true; }              // 0x6B7270
     inline bool IsComponentPresent(int32 componentId) override { return m_aBikeNodes[componentId] != nullptr; } // 0x6B59E0
     CRideAnimData* GetRideAnimData() override { return &m_RideAnimData; }                                       // 0x6B58C0
-    float GetHeightAboveRoad() override { return m_fHeightAboveRoad; }                                          // 0x6B58B0
+    float GetHeightAboveRoad() const override { return m_fHeightAboveRoad; }                                    // 0x6B58B0
     int32 GetNumContactWheels() override { return m_nNoOfContactWheels; }                                       // 0x6B58A0
     float FindWheelWidth(bool bRear) override { return 0.15f; }                                                 // 0x6B8940
 

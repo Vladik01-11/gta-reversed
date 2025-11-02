@@ -44,6 +44,9 @@ static constexpr CVector TANK_SHOT_DOOM_DISTANCE_TO_DEFAULT_TARGET = TANK_SHOT_D
 static constexpr uint32 TIGER_GUNFIRE_RATE = 60;
 static constexpr CVector TIGER_GUN_POS(0.0f, 0.5f, 0.2f); // 0xC1C208
 
+static constexpr uint16 TOWTRUCK_HOIST_DOWN_LIMIT = 20'000; // 0x8D313C
+static constexpr uint16 TOWTRUCK_HOIST_UP_LIMIT   = 10'000; // 0x8D3140
+
 void CAutomobile::InjectHooks()
 {
     RH_ScopedVirtualClass(CAutomobile, 0x871120, 71);
@@ -2195,15 +2198,13 @@ void CAutomobile::OpenDoor(CPed* ped, int32 nodeIdx, eDoors doorIdx, float doorO
 }
 
 // 0x6A2270
-float CAutomobile::GetDooorAngleOpenRatio(eDoors door)
-{
+float CAutomobile::GetDooorAngleOpenRatio(const eDoors door) const {
     const auto doorId = (int32)door;
     return m_doors[doorId].GetAngleOpenRatio();
 }
 
 // 0x6A62C0
-float CAutomobile::GetDooorAngleOpenRatioU32(uint32 door)
-{
+float CAutomobile::GetDooorAngleOpenRatioU32(uint32 door) const {
     switch (door) {
     case 8:
         return GetDooorAngleOpenRatio(DOOR_RIGHT_FRONT);
@@ -2222,8 +2223,7 @@ float CAutomobile::GetDooorAngleOpenRatioU32(uint32 door)
 }
 
 // 0x6A2290
-bool CAutomobile::IsDoorReady(eDoors door)
-{
+bool CAutomobile::IsDoorReady(eDoors door) const {
     if (m_doors[door].IsClosed())
         return true;
 
@@ -2234,8 +2234,7 @@ bool CAutomobile::IsDoorReady(eDoors door)
 }
 
 // 0x6A6350
-bool CAutomobile::IsDoorReadyU32(uint32 door)
-{
+bool CAutomobile::IsDoorReadyU32(uint32 door) const {
     switch (door) {
     case 8:
         return IsDoorReady(DOOR_RIGHT_FRONT);
@@ -2254,8 +2253,7 @@ bool CAutomobile::IsDoorReadyU32(uint32 door)
 }
 
 // 0x6A22D0
-bool CAutomobile::IsDoorFullyOpen(eDoors door)
-{
+bool CAutomobile::IsDoorFullyOpen(eDoors door) const {
     if (m_doors[door].IsFullyOpen())
         return true;
 
@@ -2266,7 +2264,7 @@ bool CAutomobile::IsDoorFullyOpen(eDoors door)
 }
 
 // 0x6A63E0
-bool CAutomobile::IsDoorFullyOpenU32(uint32 door) {
+bool CAutomobile::IsDoorFullyOpenU32(uint32 door) const {
     switch (door) {
     case 8:  return IsDoorFullyOpen(DOOR_RIGHT_FRONT);
     case 9:  return IsDoorFullyOpen(DOOR_RIGHT_REAR);
@@ -2280,12 +2278,12 @@ bool CAutomobile::IsDoorFullyOpenU32(uint32 door) {
 }
 
 // 0x6A2310
-bool CAutomobile::IsDoorClosed(eDoors door) {
+bool CAutomobile::IsDoorClosed(eDoors door) const {
     return m_doors[door].IsClosed();
 }
 
 // 0x6A6470
-bool CAutomobile::IsDoorClosedU32(uint32 door) {
+bool CAutomobile::IsDoorClosedU32(uint32 door) const {
     switch (door) {
     case 8:  return IsDoorClosed(DOOR_RIGHT_FRONT);
     case 9:  return IsDoorClosed(DOOR_RIGHT_REAR);
@@ -2299,12 +2297,12 @@ bool CAutomobile::IsDoorClosedU32(uint32 door) {
 }
 
 // 0x6A2330
-bool CAutomobile::IsDoorMissing(eDoors door) {
+bool CAutomobile::IsDoorMissing(eDoors door) const {
     return m_damageManager.GetDoorStatus(door) == DAMSTATE_NOTPRESENT;
 }
 
 // 0x6A6500
-bool CAutomobile::IsDoorMissingU32(uint32 door) {
+bool CAutomobile::IsDoorMissingU32(uint32 door) const {
     switch (door) {
     case 8:  return IsDoorMissing(DOOR_RIGHT_FRONT);
     case 9:  return IsDoorMissing(DOOR_RIGHT_REAR);
@@ -2835,7 +2833,7 @@ void CAutomobile::PlayCarHorn()
 }
 
 // 0x6A62B0
-float CAutomobile::GetHeightAboveRoad() {
+float CAutomobile::GetHeightAboveRoad() const {
     return m_fFrontHeightAboveRoad;
 }
 
@@ -2953,20 +2951,16 @@ void CAutomobile::VehicleDamage(float damageIntensity, eVehicleCollisionComponen
         return;
     }
 
-    // 0x6A792B
-    if (GetStatus() == STATUS_PLAYER) {
-        if (CStats::GetPercentageProgress() >= 100.f) {
-            calcDmgIntensity /= 2.f;
-        }
-    } else {
-        if (   physicalFlags.bInvulnerable
-            && damager
-            && damager != FindPlayerPed()
-            && damager != FindPlayerVehicle()
-        ) {
-            return;
-        }
+    // 0x6A792D
+    if (physicalFlags.bInvulnerable
+        && damager
+        && damager != FindPlayerPed()
+        && damager != FindPlayerVehicle()) {
+        return;
     }
+
+    // 0x6A792B
+    ReduceVehicleDamage(calcDmgIntensity);
 
     // 0x6A7984
     if (damager && (damager == m_pTowingVehicle || damager == m_pVehicleBeingTowed)) {
