@@ -406,18 +406,22 @@ CVehicle::~CVehicle() {
     }
 }
 
+// 0x6E2D50
 void* CVehicle::operator new(size_t size) {
     return GetVehiclePool()->New();
 }
 
+// 0x6E2D90
 void CVehicle::operator delete(void* data) {
     GetVehiclePool()->Delete(static_cast<CVehicle*>(data));
 }
 
+// 0x6E2D60
 void* CVehicle::operator new(size_t size, int32 poolRef) {
     return GetVehiclePool()->NewAt(poolRef);
 }
 
+// 0x6E2DD0
 void CVehicle::operator delete(void* data, int32 poolRef) {
     GetVehiclePool()->Delete(static_cast<CVehicle*>(data));
 }
@@ -1014,7 +1018,7 @@ void CVehicle::ProcessDrivingAnims(CPed* driver, bool blend) {
     }
 }
 
-// 0x871F54// 0x6D63F0
+// 0x6D63F0
 float CVehicle::GetHeightAboveRoad() const {
     return CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel()->GetBoundingBox().m_vecMin.z * -1.0F;
 }
@@ -1040,6 +1044,7 @@ bool CVehicle::CanPedStepOutCar(bool bIgnoreSpeedUpright) const {
            m_vecTurnSpeed.SquaredMagnitude() <= 0.0004F;
 }
 
+// TODO: function const
 // 0x6D2030
 bool CVehicle::CanPedJumpOutCar(CPed* ped) {
     if (IsBike())
@@ -1078,29 +1083,29 @@ bool CVehicle::CanPedJumpOutCar(CPed* ped) {
     return false;
 }
 
-// 0x871F6C// 0x6DFB70
-bool CVehicle::GetTowHitchPos(CVector& outPos, bool bCheckModelInfo, CVehicle* vehicle) {
-    if (!bCheckModelInfo)
+// 0x6DFB70
+bool CVehicle::GetTowHitchPos(CVector& result, bool genericPosOk, CVehicle* vehicle) {
+    if (!genericPosOk)
         return false;
 
     auto const fColFront = CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel()->GetBoundingBox().m_vecMax.y;
-    outPos.Set(0.0F, fColFront + 1.0F, 0.0F);
-    outPos = m_matrix->TransformPoint(outPos);
+    result.Set(0.0F, fColFront + 1.0F, 0.0F);
+    result = m_matrix->TransformPoint(result);
     return true;
 }
 
-// 0x871F70// 0x6DFBE0
-bool CVehicle::GetTowBarPos(CVector& outPos, bool bCheckModelInfo, CVehicle* vehicle) {
-    if (!bCheckModelInfo)
+// 0x6DFBE0
+bool CVehicle::GetTowBarPos(CVector& result, bool genericPosOk, CVehicle* vehicle) {
+    if (!genericPosOk)
         return false;
 
     auto const fColRear = CModelInfo::GetModelInfo(m_nModelIndex)->GetColModel()->GetBoundingBox().m_vecMin.y;
-    outPos.Set(0.0F, fColRear - 1.0F, 0.0F);
-    outPos = m_matrix->TransformPoint(outPos);
+    result.Set(0.0F, fColRear - 1.0F, 0.0F);
+    result = m_matrix->TransformPoint(result);
     return true;
 }
 
-// 0x871F80// 0x5D4760
+// 0x5D4760
 bool CVehicle::Save() {
     uint32 size = sizeof(CVehicleSaveStructure);
     CVehicleSaveStructure data;
@@ -1110,7 +1115,7 @@ bool CVehicle::Save() {
     return true;
 }
 
-// 0x871F84// 0x5D2900
+// 0x5D2900
 bool CVehicle::Load() {
     uint32 size;
     CVehicleSaveStructure data;
@@ -1159,11 +1164,11 @@ void CVehicle::SetRemapTexDictionary(int32 txdId) {
 
 // index for m_awRemapTxds[] array
 // 0x6D0C00
-void CVehicle::SetRemap(int32 remapIndex) {
-    if (remapIndex == -1) {
+void CVehicle::SetRemap(int32 index) {
+    if (index == -1) {
         SetRemapTexDictionary(-1);
     } else {
-        auto const infoRemapInd = GetVehicleModelInfo()->m_anRemapTxds[remapIndex];
+        auto const infoRemapInd = GetVehicleModelInfo()->m_anRemapTxds[index];
         SetRemapTexDictionary(infoRemapInd);
     }
 }
@@ -1231,19 +1236,19 @@ eVehicleAppearance CVehicle::GetVehicleAppearance() const {
 
 // returns false if vehicle model has no car plate material
 // 0x6D10E0
-bool CVehicle::CustomCarPlate_TextureCreate(CVehicleModelInfo* model) {
+bool CVehicle::CustomCarPlate_TextureCreate(CVehicleModelInfo* mi) {
     m_CustomPlateTexture = nullptr;
 
-    if (!model->m_pPlateMaterial) {
+    if (!mi->m_pPlateMaterial) {
         return false;
     }
 
-    if (const auto text = model->GetCustomCarPlateText()) {
-        m_CustomPlateTexture = CCustomCarPlateMgr::CreatePlateTexture(text, model->m_nPlateType);
-        model->SetCustomCarPlateText(text);
-        model->m_nPlateType = -1;
+    if (const auto text = mi->GetCustomCarPlateText()) {
+        m_CustomPlateTexture = CCustomCarPlateMgr::CreatePlateTexture(text, mi->m_nPlateType);
+        mi->SetCustomCarPlateText(text);
+        mi->m_nPlateType = -1;
     } else {
-        m_CustomPlateTexture = RpMaterialGetTexture(model->m_pPlateMaterial);
+        m_CustomPlateTexture = RpMaterialGetTexture(mi->m_pPlateMaterial);
         RwTextureAddRef(m_CustomPlateTexture);
     }
 
@@ -1259,7 +1264,7 @@ void CVehicle::CustomCarPlate_TextureDestroy() {
 }
 
 // 0x6D1180
-bool CVehicle::CanBeDeleted() {
+bool CVehicle::CanBeDeleted() const {
     if (m_nNumGettingIn || m_nGettingOutFlags)
         return false;
 
@@ -1291,19 +1296,19 @@ bool CVehicle::CanBeDeleted() {
 }
 
 // 0x6D1230
-float CVehicle::ProcessWheelRotation(tWheelState wheelState, const CVector& arg1, const CVector& arg2, float arg3) {
+float CVehicle::ProcessWheelRotation(tWheelState wheelState, const CVector& forward, const CVector& wheelSpeed, float radius) {
     if (wheelState == WHEEL_STATE_SPINNING)
         return -1.1f;
 
     if (wheelState == WHEEL_STATE_FIXED)
         return 0.0f;
 
-    const auto angle = DotProduct(arg1, arg2) / arg3;
+    const auto angle = DotProduct(forward, wheelSpeed) / radius;
     return -angle;
 }
 
 // 0x6D1280
-bool CVehicle::CanVehicleBeDamaged(CEntity* damager, eWeaponType weapon, bool& bDamagedDueToFireOrExplosionOrBullet) {
+bool CVehicle::CanVehicleBeDamaged(CEntity* damager, eWeaponType weaponUsed, bool* beingShotAt) {
     if (!vehicleFlags.bCanBeDamaged)
         return false;
 
@@ -1320,9 +1325,9 @@ bool CVehicle::CanVehicleBeDamaged(CEntity* damager, eWeaponType weapon, bool& b
     if (player && damager == player && player->m_pAttachedTo == this)
         return false;
 
-    bDamagedDueToFireOrExplosionOrBullet = false;
-    if (CanPhysicalBeDamaged(weapon, &bDamagedDueToFireOrExplosionOrBullet)) {
-        return !bDamagedDueToFireOrExplosionOrBullet || GetStatus() != STATUS_PLAYER || m_fHealth >= 250.0f;
+    *beingShotAt = false;
+    if (CanPhysicalBeDamaged(weaponUsed, beingShotAt)) {
+        return !beingShotAt || GetStatus() != STATUS_PLAYER || m_fHealth >= 250.0f;
     } else {
         return false;
     }
@@ -1693,7 +1698,7 @@ bool CVehicle::CanDoorsBeDamaged() const {
 }
 
 // 0x6D1E80
-bool CVehicle::CanPedEnterCar() {
+bool CVehicle::CanPedEnterCar() const {
     const auto upZ = GetUp().z;
     if (IsBike() || upZ > 0.1f || upZ < -0.1f) {
         return true;
@@ -1752,8 +1757,8 @@ bool CVehicle::IsVehicleNormal() const {
 }
 
 // 0x6D2330
-void CVehicle::ChangeLawEnforcerState(bool bIsEnforcer) {
-    if (bIsEnforcer) {
+void CVehicle::ChangeLawEnforcerState(bool newState) {
+    if (newState) {
         if (!vehicleFlags.bIsLawEnforcer) {
             vehicleFlags.bIsLawEnforcer = true;
             ++CCarCtrl::NumLawEnforcerCars;
@@ -2039,8 +2044,8 @@ void CVehicle::AddDamagedVehicleParticles() {
 }
 
 // 0x6D2BF0
-void CVehicle::MakeDirty(CColPoint& colPoint) {
-    if (g_surfaceInfos.IsWater(colPoint.m_nSurfaceTypeB) || CWeather::IsRainy()) {
+void CVehicle::MakeDirty(CColPoint& wheelColPoint) {
+    if (g_surfaceInfos.IsWater(wheelColPoint.m_nSurfaceTypeB) || CWeather::IsRainy()) {
         if (m_fDirtLevel <= 1.0f) {
             return;
         }
@@ -2048,7 +2053,7 @@ void CVehicle::MakeDirty(CColPoint& colPoint) {
         return;
     }
 
-    if (g_surfaceInfos.MakesCarDirty(colPoint.m_nSurfaceTypeB)) {
+    if (g_surfaceInfos.MakesCarDirty(wheelColPoint.m_nSurfaceTypeB)) {
         if (m_vecMoveSpeed.Magnitude2D() <= 0.06f) {
             return;
         }
@@ -2056,7 +2061,7 @@ void CVehicle::MakeDirty(CColPoint& colPoint) {
         return;
     }
 
-    if (g_surfaceInfos.MakesCarClean(colPoint.m_nSurfaceTypeB)) {
+    if (g_surfaceInfos.MakesCarClean(wheelColPoint.m_nSurfaceTypeB)) {
         if (m_vecMoveSpeed.Magnitude2D() <= 0.04f || m_fDirtLevel <= 4.0f) {
             return;
         }
@@ -2065,19 +2070,19 @@ void CVehicle::MakeDirty(CColPoint& colPoint) {
 }
 
 // 0x6D2D50
-bool CVehicle::AddWheelDirtAndWater(CColPoint& colPoint, bool isProduceWheelDrops, bool isWheelsSpinning, bool isWheelInWater) {
-    if (!isProduceWheelDrops && !g_surfaceInfos.IsSand(colPoint.m_nPieceTypeB)) {
+bool CVehicle::AddWheelDirtAndWater(CColPoint& wheelColPoint, bool produceWheelDrops, bool wheelsSpinning, bool wheelInWater) {
+    if (!produceWheelDrops && !g_surfaceInfos.IsSand(wheelColPoint.m_nPieceTypeB)) {
         return false;
     }
 
-    if (isWheelInWater) {
-        g_fx.AddWheelSpray(this, colPoint.m_vecPoint, isWheelsSpinning, true, m_fContactSurfaceBrightness);
+    if (wheelInWater) {
+        g_fx.AddWheelSpray(this, wheelColPoint.m_vecPoint, wheelsSpinning, true, m_fContactSurfaceBrightness);
         return false;
     }
 
     const auto CreateFxForSurface = [&](auto CheckSurface, auto AddFx) {
-        if ((g_surfaceInfos.*CheckSurface)(colPoint.m_nSurfaceTypeB)) {
-            (g_fx.*AddFx)(this, colPoint.m_vecPoint, isWheelsSpinning, m_fContactSurfaceBrightness);
+        if ((g_surfaceInfos.*CheckSurface)(wheelColPoint.m_nSurfaceTypeB)) {
+            (g_fx.*AddFx)(this, wheelColPoint.m_vecPoint, wheelsSpinning, m_fContactSurfaceBrightness);
             return true;
         }
         return false;
@@ -2100,8 +2105,8 @@ bool CVehicle::AddWheelDirtAndWater(CColPoint& colPoint, bool isProduceWheelDrop
         }
     }
     if (CWeather::WetRoads > 0.4f && !CCullZones::CamNoRain()) {
-        if (g_surfaceInfos.CreatesWheelSpray(colPoint.m_nPieceTypeB)) {
-            g_fx.AddWheelSpray(this, colPoint.m_vecPoint, isWheelsSpinning, false, m_fContactSurfaceBrightness);
+        if (g_surfaceInfos.CreatesWheelSpray(wheelColPoint.m_nPieceTypeB)) {
+            g_fx.AddWheelSpray(this, wheelColPoint.m_vecPoint, wheelsSpinning, false, m_fContactSurfaceBrightness);
             return false;
         }
     }
@@ -2145,15 +2150,15 @@ void CVehicle::ClearWindowOpenFlag(uint8 doorId) {
 }
 
 // 0x6D30E0
-bool CVehicle::SetVehicleUpgradeFlags(int32 upgradeModelIndex, int32 modId, int32& resultModelIndex) {
+bool CVehicle::SetVehicleUpgradeFlags(int32 modelId, int32 upgradeId, int32& replacing) {
     // At the one and only place this function is called from
     // componentIndex == CModelInfo::GetModelInfo(upgradeModelIndex)->AsVehicleModelInfo().CarMod
     // Now, I'm not sure what value it has, so..
 
-    switch (modId) {
+    switch (upgradeId) {
     case 16: {
         if (handlingFlags.bHydraulicInst) {
-            resultModelIndex = upgradeModelIndex;
+            replacing = modelId;
         }
 
         handlingFlags.bHydraulicInst = true;
@@ -2168,16 +2173,16 @@ bool CVehicle::SetVehicleUpgradeFlags(int32 upgradeModelIndex, int32 modId, int3
         }
 
         const auto GetNitroValue = [&]() -> int8 {
-            if (upgradeModelIndex == ModelIndices::MI_NITRO_BOTTLE_LARGE) {
+            if (modelId == ModelIndices::MI_NITRO_BOTTLE_LARGE) {
                 return 5;
-            } else if (upgradeModelIndex == ModelIndices::MI_NITRO_BOTTLE_DOUBLE) {
+            } else if (modelId == ModelIndices::MI_NITRO_BOTTLE_DOUBLE) {
                 return 10;
             }
             return 2;
         };
 
         if (handlingFlags.bNosInst) {
-            resultModelIndex = ModelIndices::MI_NITRO_BOTTLE_SMALL;
+            replacing = ModelIndices::MI_NITRO_BOTTLE_SMALL;
         }
 
         AsAutomobile()->NitrousControl(GetNitroValue());
@@ -2186,7 +2191,7 @@ bool CVehicle::SetVehicleUpgradeFlags(int32 upgradeModelIndex, int32 modId, int3
     }
     case 17: {
         if (m_vehicleAudio.m_AuSettings.RadioType != AE_RT_CIVILIAN || vehicleFlags.bUpgradedStereo) {
-            resultModelIndex = upgradeModelIndex;
+            replacing = modelId;
             return true;
         }
 
@@ -2393,8 +2398,8 @@ int32 CVehicle::GetUpgrade(int32 upgradeId) {
 }
 
 // 0x6D3700
-RpAtomic* CVehicle::CreateReplacementAtomic(CBaseModelInfo* mi, RwFrame* parentFrame, int16 atomicVisibilityFlags, bool isDamaged, bool bIsWheel) {
-    // atomicVisibilityFlags flags combined from `eAtomicComponentFlag`
+RpAtomic* CVehicle::CreateReplacementAtomic(CBaseModelInfo* mi, RwFrame* parentFrame, int32 flags, bool isDamaged, bool bIsWheel) {
+    // flags flags combined from `eAtomicComponentFlag`
 
     if (isDamaged) {
         CDamageAtomicModelInfo::ms_bCreateDamagedVersion = true;
@@ -2419,7 +2424,7 @@ RpAtomic* CVehicle::CreateReplacementAtomic(CBaseModelInfo* mi, RwFrame* parentF
         RwFrameDestroy(frame);
     }
 
-    SetVehicleAtomicVisibility(atomic, atomicVisibilityFlags & ~(ATOMIC_IS_DAM_STATE | ATOMIC_IS_OK_STATE));
+    SetVehicleAtomicVisibility(atomic, flags & ~(ATOMIC_IS_DAM_STATE | ATOMIC_IS_OK_STATE));
 
     SetupUpgradeAtomicRendering(atomic, isDamaged);
 
@@ -2429,30 +2434,30 @@ RpAtomic* CVehicle::CreateReplacementAtomic(CBaseModelInfo* mi, RwFrame* parentF
 }
 
 // 0x6D3830
-void CVehicle::AddReplacementUpgrade(int32 modelIndex, int32 nodeId) {
+void CVehicle::AddReplacementUpgrade(int32 modelId, int32 componentId) {
     // NOTE: 0x6D38D5 - 0x6D390B => `SetupUpgradeAtomicRendering`
 
-    ((void(__thiscall*)(CVehicle*, int32, int32))0x6D3830)(this, modelIndex, nodeId);
+    ((void(__thiscall*)(CVehicle*, int32, int32))0x6D3830)(this, modelId, componentId);
 }
 
 // 0x6D39E0
-void CVehicle::RemoveReplacementUpgrade(int32 frameId) {
-    auto frameOfUpgrade = CClumpModelInfo::GetFrameFromId(m_pRwClump, frameId);
+void CVehicle::RemoveReplacementUpgrade(int32 componentId) {
+    auto frameOfUpgrade = CClumpModelInfo::GetFrameFromId(m_pRwClump, componentId);
     RwFrameForAllObjects(frameOfUpgrade, RemoveObjectsCB, &frameOfUpgrade);
     RwFrameForAllChildren(frameOfUpgrade, RemoveObjectsCB, &frameOfUpgrade);
 
     CopyObjectsCB_TargetClump = m_pRwClump;
     RwFrameForAllObjects(
-        CClumpModelInfo::GetFrameFromId(GetModelInfo()->m_pRwClump, frameId),
+        CClumpModelInfo::GetFrameFromId(GetModelInfo()->m_pRwClump, componentId),
         CopyObjectsCB,
         frameOfUpgrade
     );
 }
 
 // 0x6D3A50
-int32 CVehicle::GetReplacementUpgrade(int32 nodeId) {
-    auto frame = CClumpModelInfo::GetFrameFromId(m_pRwClump, nodeId);
-    struct { int32 nodeId; RpAtomic* atomic; } data = { nodeId, nullptr };
+int32 CVehicle::GetReplacementUpgrade(int32 componentId) {
+    auto frame = CClumpModelInfo::GetFrameFromId(m_pRwClump, componentId);
+    struct { int32 nodeId; RpAtomic* atomic; } data = { componentId, nullptr };
     RwFrameForAllObjects(frame, FindReplacementUpgradeCB, &data);
     if (data.atomic)
         return CVisibilityPlugins::GetModelInfoIndex(data.atomic);
@@ -2491,11 +2496,11 @@ int32 CVehicle::GetSpareHasslePosId() const {
 }
 
 // 0x6D3B30
-void CVehicle::SetHasslePosId(int32 hasslePos, bool enable) {
-    if (enable) {
-        m_nHasslePosId |= 1 << hasslePos;
+void CVehicle::SetHasslePosId(int32 posId, bool used) {
+    if (used) {
+        m_nHasslePosId |= 1 << posId;
     } else {
-        m_nHasslePosId ^= 1 << hasslePos;
+        m_nHasslePosId ^= 1 << posId;
     }
 }
 
@@ -2589,8 +2594,8 @@ float CVehicle::GetRopeHeightForHeli() const {
 }
 
 // 0x6D3D30
-void CVehicle::SetRopeHeightForHeli(float height) const {
-    CRopes::GetRope(GetRopeID()).m_fSegmentLength = height;
+void CVehicle::SetRopeHeightForHeli(float ropeHeight) const {
+    CRopes::GetRope(GetRopeID()).m_fSegmentLength = ropeHeight;
 }
 
 // 0x6D3D60
@@ -2703,7 +2708,7 @@ uint32 CVehicle::GetPlaneGunsRateOfFire() {
 }
 
 // 0x6D4290
-CVector CVehicle::GetPlaneGunsPosition(int32 gunId) {
+CVector CVehicle::GetPlaneGunsPosition(int32 num) {
     const auto pos = GetModelInfo()->AsVehicleModelInfoPtr()->GetModelDummyPosition(DUMMY_VEHICLE_GUN);
     if (!pos.IsZero()) {
         return pos;
@@ -2713,7 +2718,7 @@ CVector CVehicle::GetPlaneGunsPosition(int32 gunId) {
     case MODEL_HUNTER:   return VehicleGunOffset[0];
     case MODEL_SEASPAR:  return { -0.5f, 2.4f, -0.785f }; // 0x8D35F8
     case MODEL_RCBARON:  return { 0.0f, 0.45f, 0.0f };    // 0x8D3634
-    case MODEL_RUSTLER:  return CVector{ 2.19f, 1.5f, -0.58f } + CVector{ 0.2f, 0.0f, 0.0f } * (float)(gunId - 1);  // 0x8D3610 (posn), 0x8D361C (offset)
+    case MODEL_RUSTLER:  return CVector{ 2.19f, 1.5f, -0.58f } + CVector{ 0.2f, 0.0f, 0.0f } * (float)(num - 1);  // 0x8D3610 (posn), 0x8D361C (offset)
     case MODEL_MAVERICK: return { 0.0f, 2.85f, -0.5f };   // 0x8D35E0
     case MODEL_POLMAV:   return { 0.0f, 2.85f, -0.5f };   // 0x8D35EC [Values same as the maverick's]
     case MODEL_HYDRA:    return { 1.48f, 0.44f, -0.52f }; // 0x8D3628
@@ -3004,7 +3009,7 @@ bool CVehicle::CanBeDriven() const {
 }
 
 // 0x6D5490
-void CVehicle::ReactToVehicleDamage(CPed* dmgCauser) {
+void CVehicle::ReactToVehicleDamage(CPed* inflictor) {
     const auto DoReact = [=](CPed* pedThatLooks, CEntity* pedToLookAt) {
         g_ikChainMan.LookAt("ReactToVhclDam", pedThatLooks, pedToLookAt, CGeneral::GetRandomNumberInRange(2000, 5000), BONE_HEAD, nullptr, false, 0.25f, 500, 3, false);
     };
@@ -3013,14 +3018,14 @@ void CVehicle::ReactToVehicleDamage(CPed* dmgCauser) {
 
     if (m_pDriver) {
         if (passenger) {
-            DoReact(m_pDriver, CGeneral::DoCoinFlip() ? dmgCauser : passenger);
+            DoReact(m_pDriver, CGeneral::DoCoinFlip() ? inflictor : passenger);
         } else {
-            DoReact(m_pDriver, dmgCauser);
+            DoReact(m_pDriver, inflictor);
         }
     }
 
     if (passenger) {
-        DoReact(passenger, CGeneral::DoCoinFlip() ? dmgCauser : m_pDriver);
+        DoReact(passenger, CGeneral::DoCoinFlip() ? inflictor : m_pDriver);
     }
 }
 
@@ -3057,7 +3062,7 @@ bool CVehicle::GetVehicleLightsStatus() {
 }
 
 // 0x6D5CF0
-bool CVehicle::CanPedLeanOut(CPed* ped) {
+bool CVehicle::CanPedLeanOut(CPed* ped) const {
     switch (m_pHandlingData->m_nAnimGroup) {
     case ANIM_GROUP_COLT45:
         return notsa::contains(std::array{ m_pDriver, m_apPassengers[0] }, ped);
@@ -3155,84 +3160,84 @@ void CVehicle::SetupRender() {
 }
 
 // 0x6D6C00
-void CVehicle::ProcessWheel(CVector& wheelFwd, CVector& wheelRight,
-                            CVector& wheelContactSpeed, CVector& wheelContactPoint,
-                            int32 wheelsOnGround,
-                            float thrust, float brake, float adhesion,
-                            int8 wheelId, float* wheelSpeed,
-                            tWheelState* wheelState, uint16 wheelStatus
+void CVehicle::ProcessWheel(CVector& forward, CVector& right,
+                            CVector& speed, CVector& offset,
+                            int32 noOfContactWheels,
+                            float driveAcceleration, float driveDeceleration, float adhesiveLimit,
+                            int8 wheelId, float* wheelPitchIncrement,
+                            tWheelState* wheelState, uint16 wheelDamage
 ) {
     static bool& bBraking = *(bool*)0xC1CDAE; // false
     static bool& bDriving = *(bool*)0xC1CDAD; // false
     static bool& bAlreadySkidding = *(bool*)0xC1CDAC; // false
 
-    float right = 0.0f;
+    float rightLocal = 0.0f;
     float fwd = 0.0f;
-    float contactSpeedFwd = DotProduct(wheelFwd, wheelContactSpeed);
-    float contactSpeedRight = DotProduct(wheelRight, wheelContactSpeed);
+    float contactSpeedFwd = DotProduct(forward, speed);
+    float contactSpeedRight = DotProduct(right, speed);
 
-    bBraking = brake != 0.0f;
+    bBraking = driveDeceleration != 0.0f;
     bDriving = !bBraking;
-    if (bDriving && thrust == 0.0f)
+    if (bDriving && driveAcceleration == 0.0f)
         bDriving = false;
 
-    adhesion *= CTimer::GetTimeStep();
+    adhesiveLimit *= CTimer::GetTimeStep();
     if (*wheelState != WHEEL_STATE_NORMAL) {
         bAlreadySkidding = true;
-        adhesion *= m_pHandlingData->m_fTractionLoss;
+        adhesiveLimit *= m_pHandlingData->m_fTractionLoss;
         if (*wheelState == WHEEL_STATE_SPINNING) {
             if (GetStatus() == STATUS_PLAYER || GetStatus() == STATUS_REMOTE_CONTROLLED)
-                adhesion *= (1.0f - fabs(m_GasPedal) * WS_ALREADY_SPINNING_LOSS);
+                adhesiveLimit *= (1.0f - fabs(m_GasPedal) * WS_ALREADY_SPINNING_LOSS);
         }
     }
 
     *wheelState = WHEEL_STATE_NORMAL;
 
     if (contactSpeedRight != 0.0f) {
-        right = -(contactSpeedRight / wheelsOnGround);
-        if (wheelStatus == WHEEL_STATUS_BURST) {
+        rightLocal = -(contactSpeedRight / noOfContactWheels);
+        if (wheelDamage == WHEEL_STATUS_BURST) {
             float fwdspeed = std::min(contactSpeedFwd, fBurstSpeedMax);
-            right += fwdspeed * CGeneral::GetRandomNumberInRange(-fBurstTyreMod, fBurstTyreMod) ;
+            rightLocal += fwdspeed * CGeneral::GetRandomNumberInRange(-fBurstTyreMod, fBurstTyreMod);
         }
     }
 
     if (bDriving) {
-        fwd = thrust;
-        right = std::clamp(right, -adhesion, adhesion);
+        fwd = driveAcceleration;
+        rightLocal = std::clamp(rightLocal, -adhesiveLimit, adhesiveLimit);
     }
     else if (contactSpeedFwd != 0.0f) {
-        fwd = -contactSpeedFwd / wheelsOnGround;
+        fwd = -contactSpeedFwd / noOfContactWheels;
         if (!bBraking && std::fabs(m_GasPedal) < 0.01f) {
             if (IsBike())
-                brake = gHandlingDataMgr.fWheelFriction * 0.6f / (m_pHandlingData->m_fMass + 200.0f);
+                driveDeceleration = gHandlingDataMgr.fWheelFriction * 0.6f / (m_pHandlingData->m_fMass + 200.0f);
             else if (IsSubPlane())
-                brake = 0.0f;
+                driveDeceleration = 0.0f;
             else {
-                brake = gHandlingDataMgr.fWheelFriction / m_pHandlingData->m_fMass;
+                driveDeceleration = gHandlingDataMgr.fWheelFriction / m_pHandlingData->m_fMass;
 
-                if (brake > 500.0f)
-                    brake *= 0.1f;
+                if (driveDeceleration > 500.0f)
+                    driveDeceleration *= 0.1f;
                 else if (m_nModelIndex == MODEL_RCBANDIT)
-                    brake *= 0.2f;
+                    driveDeceleration *= 0.2f;
             }
         }
-        if (brake > adhesion) {
+        if (driveDeceleration > adhesiveLimit) {
             if (std::fabs(contactSpeedFwd) > 0.005f) {
                 *wheelState = WHEEL_STATE_FIXED;
             }
         } else {
-            fwd = std::clamp(fwd, -brake, brake);
+            fwd = std::clamp(fwd, -driveDeceleration, driveDeceleration);
         }
     }
 
-    float speedSq = right * right + fwd * fwd;
-    if (speedSq > adhesion * adhesion) {
+    float speedSq = rightLocal * rightLocal + fwd * fwd;
+    if (speedSq > adhesiveLimit * adhesiveLimit) {
         if (*wheelState != WHEEL_STATE_FIXED) {
             float tractionLimit = WS_TRAC_FRAC_LIMIT;
             if (contactSpeedFwd > 0.15f && (!wheelId || wheelId == CAR_WHEEL_FRONT_RIGHT)) {
                 tractionLimit += tractionLimit;
             }
-            if (bDriving && tractionLimit * adhesion < std::fabs(fwd))
+            if (bDriving && tractionLimit * adhesiveLimit < std::fabs(fwd))
                 *wheelState = WHEEL_STATE_SPINNING;
             else
                 *wheelState = WHEEL_STATE_SKIDDING;
@@ -3246,23 +3251,23 @@ void CVehicle::ProcessWheel(CVector& wheelFwd, CVector& wheelRight,
             }
         }
         float l = sqrt(speedSq);
-        fwd *= adhesion * tractionLoss / l;
-        right *= adhesion * tractionLoss / l;
+        fwd *= adhesiveLimit * tractionLoss / l;
+        rightLocal *= adhesiveLimit * tractionLoss / l;
     }
 
-    if (fwd != 0.0f || right != 0.0f) {
+    if (fwd != 0.0f || rightLocal != 0.0f) {
         bool separateTurnForce = false;
-        CVector totalSpeed = fwd * wheelFwd + right * wheelRight;
+        CVector totalSpeed = fwd * forward + rightLocal * right;
         CVector turnDirection  = totalSpeed;
 
         if (m_pHandlingData->m_fSuspensionAntiDiveMultiplier > 0.0f) {
             if (bBraking) {
                 separateTurnForce = true;
-                turnDirection -= (m_pHandlingData->m_fSuspensionAntiDiveMultiplier * wheelFwd * fwd);
+                turnDirection -= (m_pHandlingData->m_fSuspensionAntiDiveMultiplier * forward * fwd);
             }
             else if (bDriving) {
                 separateTurnForce = true;
-                turnDirection -= (0.5f * m_pHandlingData->m_fSuspensionAntiDiveMultiplier * wheelFwd * fwd);
+                turnDirection -= (0.5f * m_pHandlingData->m_fSuspensionAntiDiveMultiplier * forward * fwd);
             }
         }
 
@@ -3278,17 +3283,17 @@ void CVehicle::ProcessWheel(CVector& wheelFwd, CVector& wheelRight,
             turnDirection = direction;
 
         float force = speed * m_fMass;
-        float turnForce = turnSpeed * GetMass(wheelContactPoint, turnDirection);
+        float turnForce = turnSpeed * GetMass(offset, turnDirection);
         ApplyMoveForce(force * direction);
-        ApplyTurnForce(turnForce * turnDirection, wheelContactPoint);
+        ApplyTurnForce(turnForce * turnDirection, offset);
     }
 }
 
 // 0x6D73B0
-void CVehicle::ProcessBikeWheel(CVector& wheelFwd, CVector& wheelRight, CVector& wheelContactSpeed, CVector& wheelContactPoint, int32 wheelsOnGround, float thrust, float brake,
-                                float adhesion, float destabTraction, int8 wheelId, float* wheelSpeed, tWheelState* wheelState, eBikeWheelSpecial special, uint16 wheelStatus) {
+void CVehicle::ProcessBikeWheel(CVector& forward, CVector& right, CVector& speed, CVector& offset, int32 noOfContactWheels, float driveAcceleration, float driveDeceleration,
+                                float adhesiveLimit, float sideAdhesiveMult, int8 wheelId, float* wheelPitchIncrement, tWheelState* wheelState, eBikeWheelSpecial wheelSp, uint16 wheelStatus) {
     plugin::CallMethod<0x6D73B0, CVehicle*, CVector&, CVector&, CVector&, CVector&, int32, float, float, float, float, char, float*, tWheelState*, eBikeWheelSpecial, uint16>(
-        this, wheelFwd, wheelRight, wheelContactSpeed, wheelContactPoint, wheelsOnGround, thrust, brake, destabTraction, adhesion, wheelId, wheelSpeed, wheelState, special,
+        this, forward, right, speed, offset, noOfContactWheels, driveAcceleration, driveDeceleration, sideAdhesiveMult, adhesiveLimit, wheelId, wheelPitchIncrement, wheelState, wheelSp,
         wheelStatus);
 }
 
@@ -3373,8 +3378,8 @@ bool CVehicle::CanUseCameraHeightSetting() {
 }
 
 // 0x6D7C90
-void CVehicle::InflictDamage(CEntity* damager, eWeaponType weapon, float intensity, CVector coords) {
-    ((void(__thiscall*)(CVehicle*, CEntity*, eWeaponType, float, CVector))0x6D7C90)(this, damager, weapon, intensity, coords);
+void CVehicle::InflictDamage(CEntity* damager, eWeaponType weaponUsed, float damage, CVector pos) {
+    ((void(__thiscall*)(CVehicle*, CEntity*, eWeaponType, float, CVector))0x6D7C90)(this, damager, weaponUsed, damage, pos);
 }
 
 // 0x6D82F0
@@ -3416,9 +3421,9 @@ bool CVehicle::UsesSiren() const {
 }
 
 // 0x6D84D0
-bool CVehicle::IsSphereTouchingVehicle(CVector posn, float radius) {
+bool CVehicle::IsSphereTouchingVehicle(CVector center, float radius) {
     const auto cm = GetColModel();
-    const auto dist = posn - GetPosition();
+    const auto dist = center - GetPosition();
 
     const auto dotRight = DotProduct(dist, GetRight());
     if (dotRight < cm->m_boundBox.m_vecMin.x - radius ||
@@ -4276,8 +4281,8 @@ void CVehicle::AddExhaustParticles() {
 
 // always return false?
 // 0x6DE880
-bool CVehicle::AddSingleWheelParticles(tWheelState wheelState, uint32 arg1, float arg2, float arg3, CColPoint* arg4, CVector* arg5, float arg6, int32 arg7, uint32 surfaceType, bool* bloodState, uint32 arg10) {
-    return ((bool(__thiscall*)(CVehicle*, tWheelState, uint32, float, float, CColPoint*, CVector*, float, int32, uint32, bool*, uint32))0x6DE880)(this, wheelState, arg1, arg2, arg3, arg4, arg5, arg6, arg7, surfaceType, bloodState, arg10);
+bool CVehicle::AddSingleWheelParticles(tWheelState wheelState, uint32 wheelStatus, float susRatio, float speed, CColPoint* colPoint, CVector* pos, float outsideVec, int32 wheelIndex, uint32 skidmarkType, bool* bloody, uint32 optionFlags) {
+    return ((bool(__thiscall*)(CVehicle*, tWheelState, uint32, float, float, CColPoint*, CVector*, float, int32, uint32, bool*, uint32))0x6DE880)(this, wheelState, wheelStatus, susRatio, speed, colPoint, pos, outsideVec, wheelIndex, skidmarkType, bloody, optionFlags);
 }
 
 // 0x6DF3D0
@@ -4310,23 +4315,23 @@ bool CVehicle::GetSpecialColModel() {
 }
 
 // 0x6DF930
-void CVehicle::RemoveVehicleUpgrade(int32 upgradeModelIndex) {
-    ((void(__thiscall*)(CVehicle*, int32))0x6DF930)(this, upgradeModelIndex);
+void CVehicle::RemoveVehicleUpgrade(int32 modelId) {
+    ((void(__thiscall*)(CVehicle*, int32))0x6DF930)(this, modelId);
 }
 
 // 0x6DFA20
-void CVehicle::AddUpgrade(int32 modelIndex, int32 upgradeIndex) {
-    ((void(__thiscall*)(CVehicle*, int32, int32))0x6DFA20)(this, modelIndex, upgradeIndex);
+void CVehicle::AddUpgrade(int32 modelId, int32 upgradeId) {
+    ((void(__thiscall*)(CVehicle*, int32, int32))0x6DFA20)(this, modelId, upgradeId);
 }
 
 // 0x6DFC50
-void CVehicle::UpdateTrailerLink(bool arg0, bool arg1) {
-    ((void(__thiscall*)(CVehicle*, bool, bool))0x6DFC50)(this, arg0, arg1);
+void CVehicle::UpdateTrailerLink(bool applyFullVelocityAtHookUp, bool applyDistToSpeed) {
+    ((void(__thiscall*)(CVehicle*, bool, bool))0x6DFC50)(this, applyFullVelocityAtHookUp, applyDistToSpeed);
 }
 
 // 0x6E0050
-void CVehicle::UpdateTractorLink(bool arg0, bool arg1) {
-    ((void(__thiscall*)(CVehicle*, bool, bool))0x6E0050)(this, arg0, arg1);
+void CVehicle::UpdateTractorLink(bool applyFullVelocityAtHookUp, bool applyDistToSpeed) {
+    ((void(__thiscall*)(CVehicle*, bool, bool))0x6E0050)(this, applyFullVelocityAtHookUp, applyDistToSpeed);
 }
 
 // 0x6E0400
@@ -4345,28 +4350,28 @@ void CVehicle::PossiblyDropFreeFallBombForPlayer(eOrdnanceType type, bool arg1) 
 }
 
 // 0x6E0950
-void CVehicle::ProcessSirenAndHorn(bool arg0) {
-    ((void(__thiscall*)(CVehicle*, bool))0x6E0950)(this, arg0);
+void CVehicle::ProcessSirenAndHorn(bool hornAvailable) {
+    ((void(__thiscall*)(CVehicle*, bool))0x6E0950)(this, hornAvailable);
 }
 
 // 0x6E0A50
-bool CVehicle::DoHeadLightEffect(eVehicleDummy dummyId, CMatrix& vehicleMatrix, uint8 lightId, uint8 lightState) {
-    return ((bool(__thiscall*)(CVehicle*, int32, CMatrix&, uint8, uint8))0x6E0A50)(this, dummyId, vehicleMatrix, lightId, lightState);
+bool CVehicle::DoHeadLightEffect(eVehicleDummy lightId, CMatrix& matVehicle, bool isRight, bool forcedOff) {
+    return ((bool(__thiscall*)(CVehicle*, int32, CMatrix&, bool, bool))0x6E0A50)(this, lightId, matVehicle, isRight, forcedOff);
 }
 
 // 0x6E0E20
-void CVehicle::DoHeadLightBeam(eVehicleDummy dummyId, CMatrix& matrix, bool arg2) {
+void CVehicle::DoHeadLightBeam(eVehicleDummy lightId, CMatrix& matVehicle, bool isRight) {
     const auto* mi = GetVehicleModelInfo();
-    CVector pointModelSpace = mi->GetModelDummyPosition(static_cast<eVehicleDummy>(2 * dummyId));
-    if (dummyId == DUMMY_LIGHT_REAR_MAIN && pointModelSpace.IsZero())
+    CVector pointModelSpace = mi->GetModelDummyPosition(static_cast<eVehicleDummy>(2 * lightId));
+    if (lightId == DUMMY_LIGHT_REAR_MAIN && pointModelSpace.IsZero())
         return;
 
-    CVector point = matrix.GetPosition() + matrix.TransformVector(pointModelSpace);
-    if (!arg2) {
-        point -= 2 * pointModelSpace.x * matrix.GetRight();
+    CVector point = matVehicle.GetPosition() + matVehicle.TransformVector(pointModelSpace);
+    if (!isRight) {
+        point -= 2 * pointModelSpace.x * matVehicle.GetRight();
     }
     const CVector pointToCamDir = Normalized(TheCamera.GetPosition() - point);
-    const auto    alpha = (uint8)((1.0f - std::fabs(DotProduct(pointToCamDir, matrix.GetForward()))) * 32.0f);
+    const auto    alpha = (uint8)((1.0f - std::fabs(DotProduct(pointToCamDir, matVehicle.GetForward()))) * 32.0f);
 
     RwRenderStateSet(rwRENDERSTATEZWRITEENABLE,         RWRSTATE(FALSE));
     RwRenderStateSet(rwRENDERSTATEZTESTENABLE,          RWRSTATE(TRUE));
@@ -4380,9 +4385,9 @@ void CVehicle::DoHeadLightBeam(eVehicleDummy dummyId, CMatrix& matrix, bool arg2
     RwRenderStateSet(rwRENDERSTATEALPHATESTFUNCTIONREF, RWRSTATE(FALSE));
 
     const float   angleMult   = ModelIndices::IsForklift((int32)m_nModelIndex) ? 0.5f : 0.15f;
-    const CVector lightNormal = Normalized(matrix.GetForward() - matrix.GetUp() * angleMult);
+    const CVector lightNormal = Normalized(matVehicle.GetForward() - matVehicle.GetUp() * angleMult);
     const CVector lightRight  = Normalized(CrossProduct(lightNormal, pointToCamDir));
-    const CVector lightPos    = point - matrix.GetForward() * 0.1f;
+    const CVector lightPos    = point - matVehicle.GetForward() * 0.1f;
 
     const CVector posn[] = {
         lightPos - lightRight * 0.05f,
@@ -4417,13 +4422,13 @@ void CVehicle::DoHeadLightBeam(eVehicleDummy dummyId, CMatrix& matrix, bool arg2
 }
 
 // 0x6E1440
-void CVehicle::DoHeadLightReflectionSingle(CMatrix& lightMat, bool bRight) {
+void CVehicle::DoHeadLightReflectionSingle(CMatrix& matVehicle, bool isRight) {
     auto vehOffset = GetDummyPositionObjSpace(DUMMY_LIGHT_FRONT_MAIN);
-    if (!bRight) {
+    if (!isRight) {
         vehOffset.x *= -1.f;
     }
-    const auto lightFwd2D = CVector2D(lightMat.GetForward()).Normalized();
-    const auto lightRight2D = CVector2D(lightMat.GetRight()).Normalized();
+    const auto lightFwd2D = CVector2D(matVehicle.GetForward()).Normalized();
+    const auto lightRight2D = CVector2D(matVehicle.GetRight()).Normalized();
     const auto lightSize = (IsBike() || GetModelId() == MODEL_QUAD)
         ? 1.25f
         : std::fabs(vehOffset.x) * 4.0f;
@@ -4450,9 +4455,9 @@ void CVehicle::DoHeadLightReflectionSingle(CMatrix& lightMat, bool bRight) {
 }
 
 // 0x6E1600
-void CVehicle::DoHeadLightReflectionTwin(CMatrix& matrix) {
+void CVehicle::DoHeadLightReflectionTwin(CMatrix& matVehicle) {
     const auto& vehOffset = GetDummyPositionObjSpace(DUMMY_LIGHT_FRONT_MAIN);
-    const auto lightFwd2D = CVector2D(matrix.GetForward()).Normalized();
+    const auto lightFwd2D = CVector2D(matVehicle.GetForward()).Normalized();
     const auto lightSize  = vehOffset.x * 4.0f;
 
     const auto offsetDistance = lightSize * 2.0f + 1.0f + vehOffset.y;
@@ -4473,35 +4478,35 @@ void CVehicle::DoHeadLightReflectionTwin(CMatrix& matrix) {
 }
 
 // 0x6E1720
-void CVehicle::DoHeadLightReflection(CMatrix& matrix, uint32 flags, bool left, bool right) {
-    if (flags & 1) {
+void CVehicle::DoHeadLightReflection(CMatrix& matVehicle, eVehicleLightsFlags lightFlags, bool left, bool right) {
+    if (lightFlags & VEHICLE_LIGHTS_TWIN) {
         if (left && right) {
-            DoHeadLightReflectionTwin(matrix);
+            DoHeadLightReflectionTwin(matVehicle);
         } else if (left || right) {
-            DoHeadLightReflectionSingle(matrix, right);
+            DoHeadLightReflectionSingle(matVehicle, right);
         }
     } else {
         if (m_nModelIndex == MODEL_COMBINE) {
-            DoHeadLightReflectionTwin(matrix);
+            DoHeadLightReflectionTwin(matVehicle);
         } else if (right) {
-            DoHeadLightReflectionSingle(matrix, true);
+            DoHeadLightReflectionSingle(matVehicle, true);
         }
     }
 }
 
 // 0x6E1780
-bool CVehicle::DoTailLightEffect(int32 lightId, CMatrix& matrix, uint8 arg2, uint8 arg3, uint32 arg4, uint8 arg5) {
-    return ((bool(__thiscall*)(CVehicle*, int32, CMatrix&, uint8, uint8, uint32, uint8))0x6E1780)(this, lightId, matrix, arg2, arg3, arg4, arg5);
+bool CVehicle::DoTailLightEffect(int32 lightId, CMatrix& matVehicle, bool isRight, bool forcedOff, eVehicleLightsFlags lightFlags, bool lightsOn) {
+    return ((bool(__thiscall*)(CVehicle*, int32, CMatrix&, bool, bool, eVehicleLightsFlags, bool))0x6E1780)(this, lightId, matVehicle, isRight, forcedOff, lightFlags, lightsOn);
 }
 
 // unknown, search
-void CVehicle::DoReverseLightEffect(int32 lightId, CMatrix& matVehicle, bool isRight, bool forcedOff, uint32 nLightFlags, bool lightsOn) {
+void CVehicle::DoReverseLightEffect(int32 lightId, CMatrix& matVehicle, bool isRight, bool forcedOff, eVehicleLightsFlags lightFlags, bool lightsOn) {
     return;
 }
 
 // 0x6E1A60
-void CVehicle::DoVehicleLights(CMatrix& matrix, eVehicleLightsFlags flags) {
-    ((void(__thiscall*)(CVehicle*, CMatrix&, uint32))0x6E1A60)(this, matrix, flags);
+void CVehicle::DoVehicleLights(CMatrix& matVehicle, eVehicleLightsFlags lightFlags) {
+    ((void(__thiscall*)(CVehicle*, CMatrix&, uint32))0x6E1A60)(this, matVehicle, lightFlags);
 }
 
 // unused

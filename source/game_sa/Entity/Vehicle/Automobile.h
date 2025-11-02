@@ -150,7 +150,7 @@ public:
     void ProcessControlCollisionCheck(bool applySpeed) override;
     void ProcessControlInputs(uint8 playerNum) override;
     void GetComponentWorldPosition(int32 componentId, CVector& outPos) override;
-    bool IsComponentPresent(int32 componentId) override;
+    bool IsComponentPresent(int32 componentId) const override;
     void OpenDoor(CPed* ped, int32 componentId, eDoors door, float doorOpenRatio, bool playSound) override; // eCarNodes = componentId
 
     //!!!!!!!!!!!!!!!!!!!
@@ -167,7 +167,7 @@ public:
     bool IsDoorMissingU32(uint32 door) const override;
     bool IsDoorMissing(eDoors door) const override;
 
-    bool IsOpenTopCar() override;
+    bool IsOpenTopCar() const override;
     void RemoveRefsToVehicle(CEntity* entity) override;
     void BlowUpCar(CEntity* damager, bool bHideExplosion) override;
     void BlowUpCarCutSceneNoExtras(bool bDontShakeCam, bool bDontSpawnStuff, bool bNoExplosion, bool bMakeSound) override;

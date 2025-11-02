@@ -2145,8 +2145,7 @@ void CAutomobile::GetComponentWorldPosition(int32 componentId, CVector& outPos)
 }
 
 // 0x6A2250
-bool CAutomobile::IsComponentPresent(int32 componentId)
-{
+bool CAutomobile::IsComponentPresent(int32 componentId) const {
     return m_aCarNodes[componentId] != 0;
 }
 
@@ -2316,7 +2315,7 @@ bool CAutomobile::IsDoorMissingU32(uint32 door) const {
 }
 
 // 0x6A2350
-bool CAutomobile::IsOpenTopCar() {
+bool CAutomobile::IsOpenTopCar() const {
     return m_nModelIndex == MODEL_COMET    && m_anExtras[0] && m_anExtras[1]
         || m_nModelIndex == MODEL_STALLION && m_anExtras[0] && m_anExtras[1];
 }
@@ -2937,7 +2936,7 @@ void CAutomobile::VehicleDamage(float damageIntensity, eVehicleCollisionComponen
         }
     } else {
         // 0x6A7BE5
-        if (bool unused{}; !CanVehicleBeDamaged(damager, weapon, unused)) {
+        if (bool unused{}; !CanVehicleBeDamaged(damager, weapon, &unused)) {
             return;
         }
 

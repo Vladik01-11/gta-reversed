@@ -232,7 +232,9 @@ public:
     void     ResetMoveSpeed()              { SetVelocity(CVector{}); }
 
     CVector& GetTurnSpeed() { return m_vecTurnSpeed; }
-    void ResetTurnSpeed() { m_vecTurnSpeed = CVector(); }
+    void SetTurnSpeed(float x, float y, float z) { m_vecTurnSpeed.Set(x, y, z); }
+    void SetTurnSpeed(const CVector& pos) { m_vecTurnSpeed = pos; }
+    void ResetTurnSpeed() { m_vecTurnSpeed = CVector(); } // NOTSA
 
     void ResetFrictionMoveSpeed() { m_vecFrictionMoveSpeed = CVector(); }
     void ResetFrictionTurnSpeed() { m_vecFrictionTurnSpeed = CVector(); }

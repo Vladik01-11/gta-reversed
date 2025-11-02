@@ -21,7 +21,7 @@
 class CAnimBlock;
 
 // enum by forkerer (https://github.com/forkerer/)
-enum eVehicleDummy {
+enum eVehicleDummy : int32 {
     DUMMY_LIGHT_FRONT_MAIN      = 0,
     DUMMY_LIGHT_REAR_MAIN       = 1,
 
