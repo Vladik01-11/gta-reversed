@@ -2728,6 +2728,11 @@ void CVehicle::SetRopeHeightForHeli(float ropeHeight) const {
     CRopes::GetRope(GetRopeID()).m_fSegmentLength = ropeHeight;
 }
 
+// 0x6D3D50
+float CVehicle::FindWheelWidth(bool rear) {
+    return 0.25F;
+}
+
 // 0x6D3D60
 void CVehicle::RenderDriverAndPassengers() {
     if (m_pDriver && m_pDriver->m_nPedState == PEDSTATE_DRIVING) {
@@ -4860,14 +4865,14 @@ bool CVehicle::DoBladeCollision(CVector pos, CMatrix& matrix, int16 rotorType, f
         bbMin[axis] = pos[axis] - ROTOR_SEMI_THICKNESS;
         bbMax[axis] = pos[axis] + ROTOR_SEMI_THICKNESS;
 
-        s_TestBladeCol.m_boundBox.Set(bbMin, bbMax);
-        s_TestBladeCol.m_boundSphere.Set(radius, pos);
-        s_TestBladeCol.m_pColData = &s_TestBladeColData;
+        TestBladeCol.m_boundBox.Set(bbMin, bbMax);
+        TestBladeCol.m_boundSphere.Set(radius, pos);
+        TestBladeCol.m_pColData = &TestBladeColData;
 
-        s_TestBladeColSphere.Set(radius, pos, SURFACE_DEFAULT);
+        TestBladeColSphere.Set(radius, pos, SURFACE_DEFAULT);
 
-        s_TestBladeColData.m_pSpheres = &s_TestBladeColSphere;
-        s_TestBladeColData.m_nNumSpheres = 1;
+        TestBladeColData.m_pSpheres = &TestBladeColSphere;
+        TestBladeColData.m_nNumSpheres = 1;
     }
 
     bool collided = false;
@@ -4875,7 +4880,7 @@ bool CVehicle::DoBladeCollision(CVector pos, CMatrix& matrix, int16 rotorType, f
     CWorld::IncrementCurrentScanCode();
     CWorld::IterateSectorsOverlappedByRect(CRect{ m_matrix->TransformPoint(pos), radius }, [&](int32 x, int32 y) {
         const auto ProcessSector = [&]<typename PtrListType>(PtrListType& list, float damage) {
-            return BladeColSectorList(list, s_TestBladeCol, matrix, rotorType, damage);
+            return BladeColSectorList(list, TestBladeCol, matrix, rotorType, damage);
         };
         auto* const s = GetSector(x, y);
         auto* const rs = GetRepeatSector(x, y);
@@ -4886,8 +4891,8 @@ bool CVehicle::DoBladeCollision(CVector pos, CMatrix& matrix, int16 rotorType, f
         return 1;
     });
 
-    s_TestBladeColData.m_nNumSpheres = 0;
-    s_TestBladeCol.m_pColData = nullptr;
+    TestBladeColData.m_nNumSpheres = 0;
+    TestBladeCol.m_pColData = nullptr;
 
     return collided;
 }

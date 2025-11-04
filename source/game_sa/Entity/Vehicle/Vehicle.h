@@ -738,7 +738,7 @@ public:
     virtual bool SetTowLink(CVehicle* tractor, bool warpPosition) { return false; }
     virtual bool BreakTowLink() { return false; }
 
-    virtual float FindWheelWidth(bool rear) { return 0.25F; }
+    virtual float FindWheelWidth(bool rear);
 
     void ProcessWeapons();
 
