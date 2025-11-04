@@ -4336,8 +4336,6 @@ void CVehicle::ProcessBoatControl(tBoatHandlingData* boatHandling, float* fLastW
 
 // 0x6DD130
 void CVehicle::DoBoatSplashes(float fWaterDamping) {
-    //return plugin::CallMethod<0x6DD130, CVehicle*, float>(this, fWaterDamping);
-
     const auto speedDist = m_vecMoveSpeed.SquaredMagnitude();
     if (speedDist <= 0.0025f || GetUp().z <= 0.0f || TheCamera.GetLookingForwardFirstPerson() || !IsVisible()) {
         return;
