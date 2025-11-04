@@ -58,7 +58,7 @@ float ROTOR_DISGUARD_MULT = 0.3f; // 0x871DA0
 float ROTOR_COL_ELASTICITY = 1.0f; // 0x871DA4
 float ROTOR_COL_TURNMULT = -0.0005f; // 0x871DA8
 float ROTOR_DEFAULT_DAMAGE = 100.0f; // 0x871DAC
-// val?
+// val
 float ROTOR_AUDIO_IMPACT_MAG = 0.15f; // 0x871DB0
 float ROTOR_AUDIO_IMPACT_MAG_REMOTE = 0.15f; // 0x871DB4
 float ROTOR_AUDIO_IMPACT_PLAYER_POS_OFFSET = 4.0f; // 0x871DB8
@@ -73,7 +73,7 @@ float SEAPLANE_H_SPEED_LIMIT = -0.15f; // 0x871DC8
 float SEAPLANE_H_TURN_MULT = -0.00017f; // 0x871DCC
 float SEAPLANE_H_FWD_MULT = -0.5f; // 0x871DD0
 float SEAPLANE_ENDO_TIME = 300.0f; // 0x871DD4
-// val?
+// val
 float BOAT_COLLISION_TURFORCEMULT = 0.4f; // 0x871DD8
 // val x2?
 
@@ -81,7 +81,7 @@ float fSeaPlaneWaterResistance = 30.0f; // 0x871DDC
 
 float BOAT_SPLASH_FORCE_MULT = 0.075f; // 0x871DE0
 float BOAT_SPLASH_FORCE_CAP = 1.0f; // 0x871DE4
-// val?
+// val
 float SEAPLANE_SPLASH_FORCE_MULT = 3.0f; // 0x871DE8
 float SEAPLANE_SPLASH_FORCE_CAP = 0.5f; // 0x871DEC
 
@@ -104,7 +104,7 @@ float ROT_DAMP_MULT_Y = -0.0f; // dont
 float ROT_DAMP_MULT_Z = -0.03f; // 0x8D35D0
 
 float TOW_TRAILER_MAX_POS_DIFF = 1.0f; // 0x871DF0
-// val x4?
+// val x4
 float TOW_TRAILER_APPLY_DIST_TO_VEL = 0.3f; // 0x871DF4
 
 float TOW_TRACTOR_APPLY_VEL_RATIO = 0.5f; // 0x871DF8
@@ -143,22 +143,24 @@ const CVector s_RCBaronOrdnancePos = CVector(0.0f, 0.0f, 0.0f); // 0xC1CC50
 float HEADLIGHT_ZR350_ANGLE = 0.69813174f; // 0x871E28, TODO: magisk value
 float HEADLIGHT_ZR350_RATE = 0.01f; // 0x871E2C
 
-float flt_871E30 = 0.32f; // 0x871E30
-float flt_871E34 = 0.16f; // 0x871E34
-float flt_871E38 = 0.000065f; // 0x871E38
-float flt_871E64 = 15.9375f; // 0x871E64
-float flt_871E78 = 0.00002f; // 0x871E78
+// define?
+float flt_871E30 = 0.32f;     // 0x871E30 - TODO: name
+float flt_871E34 = 0.16f;     // 0x871E34 - TODO: name
+float flt_871E38 = 0.000065f; // 0x871E38 - TODO: name
+float flt_871E64 = 15.9375f;  // 0x871E64 - TODO: name
+float flt_871E78 = 0.00002f;  // 0x871E78 - TODO: name
 
-float flt_8D3670 = 0.5f; // 0x8D3670
-float flt_8D3674 = 0.85f; // 0x8D3674
-float flt_8D3678 = 0.25f; // 0x8D3678
-float flt_8D367C = 0.5f; // 0x8D367C
-float flt_8D3680 = 2.5f; // 0x8D3680
-float flt_8D3684 = 0.4f; // 0x8D3684
-float flt_8D3688 = 0.2f; // 0x8D3688
-float flt_8D368C = 0.1f; // 0x8D368C
-float green = 0.02f; // 0x8D3690
-float blue = 0.02f; // 0x8D3694
+// in function - var = value?
+float flt_8D3670 = 0.5f;  // 0x8D3670 - LIMIT_RC_PLANE_FORM_LIFT ?
+float flt_8D3674 = 0.85f; // 0x8D3674 - SEAPLANE_SPLASH_SIDE_POS_MULT_X ?
+float flt_8D3678 = 0.25f; // 0x8D3678 - SEAPLANE_SPLASH_SIDE_POS_MULT_Z ?
+float flt_8D367C = 0.5f;  // 0x8D367C - fDoExhaustLimitCar, speed, distSqr ?
+float flt_8D3680 = 2.5f;  // 0x8D3680 - fDoExhaustLimitCar, speed, distSqr ?
+float flt_8D3684 = 0.4f;  // 0x8D3684 - lightSizeMult, lightToCamDist, dotProd ?
+float flt_8D3688 = 0.2f;  // 0x8D3688 - lightSizeMult, lightToCamDist, dotProd ?
+float flt_8D368C = 0.1f;  // 0x8D368C - redLight ?
+float flt_8D3690 = 0.02f; // 0x8D3690 - greenLight ?
+float flt_8D3694 = 0.02f; // 0x8D3694 - blueLight ?
 
 void CVehicle::InjectHooks() {
     RH_ScopedVirtualClass(CVehicle, 0x871e80, 66);
