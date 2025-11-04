@@ -46,7 +46,9 @@ float AUTOGYRO_ROTORLIFT_MULT = 0.997f; // 0x8D34DC
 float AUTOGYRO_ROTORLIFT_FALLOFF = 0.25f; // 0x8D34D8
 float AUTOGYRO_ROTORTILT_ANGLE = 0.006f; // 0x8D34D4
 
-float PLANE_STALL_ANGLE = 0.7330383f; // TODO: magisk value
+float PLANE_STALL_ANGLE = 0.7330383f; // 0x871D98 TODO: magisk value and recheck in PC
+
+float flt_871D94 = 1.0f; // 0x871D94
 
 CColModel TestBladeCol; // 0xC1CD38
 CCollisionData TestBladeColData; // 0xC1CD68
