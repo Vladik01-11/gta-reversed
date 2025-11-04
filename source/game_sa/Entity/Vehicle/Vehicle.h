@@ -124,7 +124,15 @@ enum eRotationAxis : int32 {
 };
 
 typedef int32 eOrdnanceType;
-typedef int32 eBikeWheelSpecial;
+
+enum eBikeWheelSpecial {
+    BIKE_WHEEL_F_STD = 0,
+    BIKE_WHEEL_R_STD,
+    BIKE_WHEEL_F_SLIP,
+    BIKE_WHEEL_R_SLIP,
+    BIKE_WHEEL_R_HBRAKE,
+    BIKE_WHEEL_R_SLIPBRAKE
+};
 
 enum eFlightModel : int32 {
     FLIGHT_MODEL_UNK = 0,
@@ -610,7 +618,7 @@ public:
     void UpdateLightingFromStoredPolys();
     void CalculateLightingFromCollision();
 
-    eCarWheel FindTyreNearestPoint(CVector2D point);
+    eCarWheel FindTyreNearestPoint(CVector2D point); // float pointX, float pointY
     eVehicleType GetVehicleType() const { return m_vehicleType; }
     eVehicleType GetBaseVehicleType() const { return m_baseVehicleType; }
 

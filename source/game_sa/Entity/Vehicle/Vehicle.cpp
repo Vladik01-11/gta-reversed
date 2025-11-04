@@ -285,7 +285,7 @@ void CVehicle::InjectHooks() {
     RH_ScopedInstall(CanPedLeanOut, 0x6D5CF0);
     RH_ScopedInstall(SetVehicleCreatedBy, 0x6D5D70);
     RH_ScopedInstall(SetupRender, 0x6D64F0);
-    // RH_ScopedInstall(ProcessBikeWheel, 0x6D73B0);
+    RH_ScopedInstall(ProcessBikeWheel, 0x6D73B0);
     RH_ScopedInstall(FindTyreNearestPoint, 0x6D7BC0);
     // RH_ScopedInstall(InflictDamage, 0x6D7C90);
     RH_ScopedInstall(KillPedsGettingInVehicle, 0x6D82F0);
@@ -3416,10 +3416,184 @@ void CVehicle::ProcessWheel(CVector& forward, CVector& right, CVector& speed, CV
 }
 
 // 0x6D73B0
-void CVehicle::ProcessBikeWheel(CVector& forward, CVector& right, CVector& speed, CVector& offset, int32 noOfContactWheels, float driveAcceleration, float driveDeceleration, float adhesiveLimit, float sideAdhesiveMult, int8 wheelId, float* wheelPitchIncrement, tWheelState* wheelState, eBikeWheelSpecial wheelSp, uint16 wheelStatus) {
-    plugin::CallMethod<0x6D73B0, CVehicle*, CVector&, CVector&, CVector&, CVector&, int32, float, float, float, float, char, float*, tWheelState*, eBikeWheelSpecial, uint16>(
-        this, forward, right, speed, offset, noOfContactWheels, driveAcceleration, driveDeceleration, sideAdhesiveMult, adhesiveLimit, wheelId, wheelPitchIncrement, wheelState, wheelSp, wheelStatus
-    );
+void CVehicle::ProcessBikeWheel(CVector& forward, CVector& right, CVector& speed, CVector& offset, int32 noOfContactWheels, float driveAcceleration, float driveDeceleration, float adhesiveLimit, float dideAdhesiveMult, int8 wheelNum, float* wheelPitchIncrement, tWheelState* wheelState, eBikeWheelSpecial wheelSpecial, uint16 wheelDamage) {
+    static bool bBraking         = false; // 0xC1CDB2
+    static bool bDriving         = false; // 0xC1CDB1
+    static bool bReversing       = false; // 0xC1CDB0
+    static bool bAlreadySkidding = false; // 0xC1CDAF
+
+    // Calculate forward velocity (velocity projection in the forward direction)
+    const float forwardSpeed = speed.Dot(forward);
+
+    // Determine the state of motion
+    if (driveDeceleration == 0.0f) {
+        bBraking = false;
+        bDriving = driveAcceleration != 0.0f;
+        bReversing = driveAcceleration < 0.0f;
+    } else {
+        bBraking = true;
+        bDriving = false;
+        bReversing = false;
+    }
+
+    // Check whether the wheel was already in a state of slippage
+    if (*wheelState != WHEEL_STATE_NORMAL) {
+        bAlreadySkidding = true;
+    }
+
+    *wheelState = WHEEL_STATE_NORMAL;
+
+    // Apply a time step to the adhesion limit
+    float adhesiveLimit = CTimer::ms_fTimeStep * adhesiveLimit;
+
+    // If the wheel has already slipped, apply traction loss
+    if (bAlreadySkidding) {
+        adhesiveLimit *= m_pHandlingData->m_fTractionLoss;
+    }
+
+    // Calculate lateral force
+    float lateralForce = 0.0f;
+
+    // If the wheel is not in special slip mode
+    if (wheelSpecial != BIKE_WHEEL_F_SLIP && wheelSpecial != BIKE_WHEEL_R_SLIP) {
+        const float rightSpeed = speed.Dot(right);
+        if (rightSpeed != 0.0f) {
+            lateralForce = -(rightSpeed / noOfContactWheels);
+            // Simulation of a damaged tire
+            if (wheelDamage == 1) {
+                const float clampedSpeed = std::min(forwardSpeed, fBurstBikeSpeedMax);
+                const float randomMod = CGeneral::GetRandomNumberInRange(-fBurstBikeTyreMod, fBurstBikeTyreMod);
+                lateralForce += randomMod * clampedSpeed;
+            }
+        }
+    }
+
+    // Calculate the longitudinal force
+    float forwardForce = 0.0f;
+
+    if (bDriving) {
+        forwardForce = driveAcceleration;
+
+        // Limiting lateral force during acceleration
+        lateralForce = std::clamp(lateralForce, -adhesiveLimit, adhesiveLimit);
+
+    } else if (forwardSpeed != 0.0f) {
+        // Slowdown
+        forwardForce = -(forwardSpeed / noOfContactWheels);
+
+        // Calculating braking force
+        float brakeForce = driveDeceleration;
+
+        if (!bBraking) {
+            const float absPedal = std::abs(m_GasPedal);
+
+            if (absPedal < 0.01f) {
+                // Natural deceleration when the accelerator is gas
+                if (m_vehicleType == VEHICLE_TYPE_BMX) {
+                    if (std::abs(forwardForce) < 0.05f) {
+                        brakeForce = gHandlingDataMgr.fWheelFriction * 0.5f / (m_pHandlingData->m_fMass + 200.0f);
+                    }
+                } else if (m_baseVehicleType == VEHICLE_TYPE_BIKE) {
+                    brakeForce = gHandlingDataMgr.fWheelFriction * 0.6f / (m_pHandlingData->m_fMass + 200.0f);
+                } else {
+                    brakeForce = gHandlingDataMgr.fWheelFriction / m_pHandlingData->m_fMass;
+
+                    // Special treatment for model RC Bandit
+                    if (m_nModelIndex == MODEL_RCBANDIT) {
+                        brakeForce /= 5.f;
+                    }
+                }
+            }
+        }
+
+        // Checking wheel lock
+        if (brakeForce > adhesiveLimit && std::abs(forwardSpeed) > 0.005f) {
+            *wheelState = WHEEL_STATE_FIXED;
+        } else {
+            forwardForce = std::clamp(forwardForce, -brakeForce, brakeForce);
+        }
+    }
+
+    // Checking for thrust limit exceedance
+    const float adhesiveLimitSquared = adhesiveLimit * adhesiveLimit;
+    const float totalForceSquared = lateralForce * lateralForce + forwardForce * forwardForce;
+
+    if (totalForceSquared > adhesiveLimitSquared) {
+        // The wheel loses traction
+        if (*wheelState != WHEEL_STATE_FIXED) {
+            if (bDriving && forwardSpeed < 0.1f) {
+                *wheelState = WHEEL_STATE_SPINNING;
+            } else {
+                *wheelState = WHEEL_STATE_SKIDDING;
+            }
+        }
+
+        // Apply thrust loss
+        const float tractionLoss = bAlreadySkidding ? 1.0f : m_pHandlingData->m_fTractionLoss;
+        const float forceMult = (tractionLoss * adhesiveLimit) / std::sqrt(totalForceSquared);
+
+        forwardForce *= forceMult;
+        lateralForce *= forceMult;
+
+        if (dideAdhesiveMult < 1.0f) {
+            lateralForce *= dideAdhesiveMult;
+        }
+
+    } else if (dideAdhesiveMult < 1.0f) {
+        // Apply the lateral adhesion factor
+        float sideAdhesiveMult = dideAdhesiveMult;
+        if (!bAlreadySkidding) {
+            sideAdhesiveMult *= m_pHandlingData->m_fTractionLoss;
+        }
+
+        const float sideAdhesiveLimitSquared = adhesiveLimitSquared * sideAdhesiveMult * sideAdhesiveMult;
+
+        if (totalForceSquared > sideAdhesiveLimitSquared) {
+            lateralForce *= (adhesiveLimit * sideAdhesiveMult) / std::sqrt(totalForceSquared);
+        }
+    }
+
+    // Apply force to the vehicle
+    if (forwardForce != 0.0f || lateralForce != 0.0f) {
+        // Combining forces
+        CVector combinedForce = forward * forwardForce + right * lateralForce;
+        const float forceMagnitude = combinedForce.Magnitude();
+
+        // Normalize the direction of the force
+        CVector forceDirection = combinedForce;
+        forceDirection.Normalized();
+
+        // Calculate the moment of inertia for the point of application
+        const CVector torqueArm         = offset.Cross(forceDirection);
+        const float rotationalInertia = torqueArm.Dot(torqueArm) / m_fTurnMass;
+        const float effectiveMass = 1.0f / (rotationalInertia + 1.0f / m_fMass);
+
+        // We apply the force of motion
+        const CVector moveForce = forceDirection * (m_fMass * forceMagnitude);
+        ApplyMoveForce(moveForce);
+
+        // Apply rotational force
+        const CVector turnForce = forceDirection * (effectiveMass * forceMagnitude);
+
+        // Project onto the matrix axes
+        const float rightComponent         = turnForce.Dot(m_matrix->GetRight());
+        const float forwardOffsetComponent = offset.Dot(m_matrix->GetForward());
+        const float rightOffsetComponent = offset.Dot(m_matrix->GetRight());
+
+        // Apply rotation (not for front wheel when braking/reversing)
+        if (wheelNum != 1 || (!bBraking && !bReversing)) {
+            const CVector offsetAdjusted = offset - m_matrix->GetRight() * rightOffsetComponent;
+            const CVector forceAdjusted = turnForce - m_matrix->GetRight() * rightComponent;
+            const CVector scaledForce = forceAdjusted * fTweakBikeWheelTurnForce;
+
+            ApplyTurnForce(scaledForce, offsetAdjusted);
+        }
+
+        // Apply additional torque
+        const CVector forwardOffset = m_matrix->GetForward() * forwardOffsetComponent;
+        const CVector rightForce = m_matrix->GetRight() * rightComponent;
+        ApplyTurnForce(rightForce, forwardOffset);
+    }
 }
 
 // 0x6D7BC0
@@ -3427,12 +3601,18 @@ eCarWheel CVehicle::FindTyreNearestPoint(CVector2D point) {
     const auto relativePt = point - GetPosition2D();
     const bool isRight = relativePt.Dot(GetForward()) <= 0.f; // TODO: This doesn't make a lot of sense, why is Y used for left/right?
     if (IsBike()) {
-        return isRight ? CAR_WHEEL_FRONT_RIGHT : CAR_WHEEL_FRONT_LEFT;
+        return isRight
+            ? CAR_WHEEL_FRONT_RIGHT
+            : CAR_WHEEL_FRONT_LEFT;
     }
     const bool isFront = relativePt.Dot(GetRight()) <= 0.f; // TODO: Same here, why is X used for front/rear?
     return isRight
-        ? isFront ? CAR_WHEEL_FRONT_RIGHT : CAR_WHEEL_REAR_RIGHT
-        : isFront ? CAR_WHEEL_REAR_LEFT : CAR_WHEEL_FRONT_LEFT;
+        ? isFront
+            ? CAR_WHEEL_FRONT_RIGHT
+            : CAR_WHEEL_REAR_RIGHT
+        : isFront
+            ? CAR_WHEEL_REAR_LEFT
+            : CAR_WHEEL_FRONT_LEFT;
 }
 
 // For Mobile, reduced damage taken by player vehicles, making them more durable
@@ -3546,22 +3726,23 @@ bool CVehicle::UsesSiren() const {
 
 // 0x6D84D0
 bool CVehicle::IsSphereTouchingVehicle(CVector center, float radius) {
-    const auto cm = GetColModel();
     const auto dist = center - GetPosition();
 
-    const auto dotRight = DotProduct(dist, GetRight());
+    const auto cm = GetColModel();
+
+    const auto dotRight = dist.Dot(GetRight());
     if (dotRight < cm->m_boundBox.m_vecMin.x - radius
         || dotRight > cm->m_boundBox.m_vecMax.x + radius) {
         return false;
     }
 
-    const auto dotFwd = DotProduct(dist, GetForward());
+    const auto dotFwd = dist.Dot(GetForward());
     if (dotFwd < cm->m_boundBox.m_vecMin.y - radius
         || dotFwd > cm->m_boundBox.m_vecMax.y + radius) {
         return false;
     }
 
-    const auto dotUp = DotProduct(dist, GetUp());
+    const auto dotUp = dist.Dot(GetUp());
     if (dotUp < cm->m_boundBox.m_vecMin.z - radius
         || dotUp > cm->m_boundBox.m_vecMax.z + radius) {
         return false;
