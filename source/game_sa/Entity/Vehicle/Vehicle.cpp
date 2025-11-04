@@ -3451,11 +3451,11 @@ void CVehicle::ProcessBikeWheel(CVector& forward, CVector& right, CVector& speed
     *wheelState = WHEEL_STATE_NORMAL;
 
     // Apply a time step to the adhesion limit
-    float adhesiveLimit = CTimer::ms_fTimeStep * adhesiveLimit;
+    float adhesiveLimitLocal = CTimer::ms_fTimeStep * adhesiveLimit;
 
     // If the wheel has already slipped, apply traction loss
     if (bAlreadySkidding) {
-        adhesiveLimit *= m_pHandlingData->m_fTractionLoss;
+        adhesiveLimitLocal *= m_pHandlingData->m_fTractionLoss;
     }
 
     // Calculate lateral force
@@ -3482,7 +3482,7 @@ void CVehicle::ProcessBikeWheel(CVector& forward, CVector& right, CVector& speed
         forwardForce = driveAcceleration;
 
         // Limiting lateral force during acceleration
-        lateralForce = std::clamp(lateralForce, -adhesiveLimit, adhesiveLimit);
+        lateralForce = std::clamp(lateralForce, -adhesiveLimitLocal, adhesiveLimitLocal);
 
     } else if (forwardSpeed != 0.0f) {
         // Slowdown
@@ -3514,7 +3514,7 @@ void CVehicle::ProcessBikeWheel(CVector& forward, CVector& right, CVector& speed
         }
 
         // Checking wheel lock
-        if (brakeForce > adhesiveLimit && std::abs(forwardSpeed) > 0.005f) {
+        if (brakeForce > adhesiveLimitLocal && std::abs(forwardSpeed) > 0.005f) {
             *wheelState = WHEEL_STATE_FIXED;
         } else {
             forwardForce = std::clamp(forwardForce, -brakeForce, brakeForce);
@@ -3522,7 +3522,7 @@ void CVehicle::ProcessBikeWheel(CVector& forward, CVector& right, CVector& speed
     }
 
     // Checking for thrust limit exceedance
-    const float adhesiveLimitSquared = adhesiveLimit * adhesiveLimit;
+    const float adhesiveLimitSquared = adhesiveLimitLocal * adhesiveLimitLocal;
     const float totalForceSquared = lateralForce * lateralForce + forwardForce * forwardForce;
 
     if (totalForceSquared > adhesiveLimitSquared) {
@@ -3537,7 +3537,7 @@ void CVehicle::ProcessBikeWheel(CVector& forward, CVector& right, CVector& speed
 
         // Apply thrust loss
         const float tractionLoss = bAlreadySkidding ? 1.0f : m_pHandlingData->m_fTractionLoss;
-        const float forceMult = (tractionLoss * adhesiveLimit) / std::sqrt(totalForceSquared);
+        const float forceMult    = (tractionLoss * adhesiveLimitLocal) / std::sqrt(totalForceSquared);
 
         forwardForce *= forceMult;
         lateralForce *= forceMult;
@@ -3556,7 +3556,7 @@ void CVehicle::ProcessBikeWheel(CVector& forward, CVector& right, CVector& speed
         const float sideAdhesiveLimitSquared = adhesiveLimitSquared * sideAdhesiveMult * sideAdhesiveMult;
 
         if (totalForceSquared > sideAdhesiveLimitSquared) {
-            lateralForce *= (adhesiveLimit * sideAdhesiveMult) / std::sqrt(totalForceSquared);
+            lateralForce *= (adhesiveLimitLocal * sideAdhesiveMult) / std::sqrt(totalForceSquared);
         }
     }
 
@@ -3952,7 +3952,7 @@ bool CVehicle::BladeColSectorList(PtrListType& ptrList, CColModel& colModel, CMa
             }
 
             if (wasAnyCPValid) {
-                if (entity->GetIsTypePed() && !CTimer::IsTimeInRange(planeRotorDmgTimeMS - 2'000, planeRotorDmgTimeMS)) {
+                if (entity->GetIsTypePed() && !CTimer::IsTimeInRange(ROTOR_LAST_COL_TIME - 2'000, ROTOR_LAST_COL_TIME)) {
                     const auto ReportCollision = [&](CVector pos) {
                         AudioEngine.ReportCollision(
                             this,
@@ -3973,7 +3973,7 @@ bool CVehicle::BladeColSectorList(PtrListType& ptrList, CColModel& colModel, CMa
                         const auto& gameCamPos = *TheCamera.GetGameCamPosition();
                         ReportCollision(gameCamPos + Normalized(cpOnRotor - gameCamPos) * 4.f);
                     }
-                    planeRotorDmgTimeMS = CTimer::GetTimeInMS() + CGeneral::GetRandomNumberInRange(150, 250);
+                    ROTOR_LAST_COL_TIME = CTimer::GetTimeInMS() + CGeneral::GetRandomNumberInRange(150, 250);
                 }
             }
 
