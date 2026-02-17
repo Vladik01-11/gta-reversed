@@ -6,6 +6,7 @@
 */
 #pragma once
 
+// ePlayerClothesTextures
 enum eClothesTexturePart : int32 {
     CLOTHES_TEXTURE_TORSO           = 0,
     CLOTHES_TEXTURE_HEAD            = 1,

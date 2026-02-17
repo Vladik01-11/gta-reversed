@@ -64,6 +64,7 @@ void CClothesBuilder::RequestGeometry(int32 modelId, uint32 modelNameKey) {
     CStreaming::RequestFile(modelId, pos, size, CClothes::ms_clothesImageId, STREAMING_PRIORITY_REQUEST | STREAMING_GAME_REQUIRED);
 }
 
+// Delete in Mobile
 // 0x5A4220
 int32 CClothesBuilder::RequestTexture(uint32 txdNameKey) {
     if (txdNameKey == 0) {
@@ -512,7 +513,7 @@ RpClump* CClothesBuilder::CreateSkinnedClump(RpClump* bones, RwTexDictionary* di
         {eClothesModelPart::CLOTHES_MODEL_SHOES, "feet"}
     };
     for (const auto [mp, name] : parts) {
-        if (!ndscr.m_anModelKeys[(int)mp]) {
+        if (!ndscr.GetModel(mp)) {
             ndscr.SetModel(name, mp);
         }
     }
@@ -520,28 +521,28 @@ RpClump* CClothesBuilder::CreateSkinnedClump(RpClump* bones, RwTexDictionary* di
     if (odscr) {
         ms_geometryHasChanged = false;
         ms_ratiosHaveChanged  = false;
-        if (odscr->m_fFatStat != ndscr.m_fFatStat || odscr->m_fMuscleStat != ndscr.m_fMuscleStat) {
+        if (odscr->GetFatStat() != ndscr.GetFatStat() || odscr->GetStrengthStat() != ndscr.GetStrengthStat()) {
             ms_textureHasChanged = true;
             ms_geometryHasChanged = true;
         } else {
             ms_textureHasChanged = true;
         }
-        ms_geometryHasChanged = !rng::equal(ndscr.m_anModelKeys, odscr->m_anModelKeys);
-        ms_ratiosHaveChanged  = !rng::equal(ndscr.m_anTextureKeys, odscr->m_anTextureKeys);
+        ms_geometryHasChanged = !rng::equal(ndscr.ModelKeys, odscr->ModelKeys);
+        ms_ratiosHaveChanged  = !rng::equal(ndscr.TextureKeys, odscr->TextureKeys);
         if (!ms_ratiosHaveChanged && !ms_geometryHasChanged && !ms_textureHasChanged) {
             return nullptr;
         }
     } else {
         ms_ratiosHaveChanged = ms_geometryHasChanged = ms_textureHasChanged = true;
     }
-    CPedClothesDesc dscr = ndscr;
+    CPedClothesDesc& dscr = ndscr;
     PreprocessClothesDesc(dscr, bCutscenePlayer);
 
     //> 0x5A42B0 - Calculate blend ratios
     float rNormal, rFatness, rMuscle;
     {
         rMuscle  = std::clamp(CStats::GetStatValue(STAT_MUSCLE) / 1000.f, 0.f, 1.f);
-        rFatness = std::clamp((dscr.m_fFatStat - 200.f) / 800.f, 0.f, 1.f);
+        rFatness = std::clamp((dscr.GetFatStat() - 200.f) / 800.f, 0.f, 1.f);
         rNormal  = 1.f - rMuscle - rFatness;
         if (rNormal <= 0.f) {
             const auto t = 1.f / (rFatness + rMuscle);
@@ -557,7 +558,7 @@ RpClump* CClothesBuilder::CreateSkinnedClump(RpClump* bones, RwTexDictionary* di
             RwTextureDestroy(t);
             return t;
         }, nullptr);
-        ConstructTextures(dict, dscr.m_anTextureKeys.data(), rNormal, rFatness, rMuscle);
+        ConstructTextures(dict, dscr.TextureKeys.data(), rNormal, rFatness, rMuscle);
     }
 
     constexpr auto NO_BODY_PARTS = 10;
@@ -592,7 +593,7 @@ RpClump* CClothesBuilder::CreateSkinnedClump(RpClump* bones, RwTexDictionary* di
 
     //> 0x5A6C5D
     RpGeometry* gs[NO_BODY_PARTS]{};
-    ConstructGeometryArray(gs, dscr.m_anModelKeys.data(), rNormal, rFatness, rMuscle);
+    ConstructGeometryArray(gs, dscr.ModelKeys.data(), rNormal, rFatness, rMuscle);
 
     //> 0x5A6C6A
     const auto boneAtomic = GetFirstAtomic(bones);

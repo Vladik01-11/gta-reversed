@@ -151,7 +151,7 @@ public:
     }
 
     /*!
-    * @brief Returns pointer to object by slot index
+    * @brief Returns pointer to object by slot index. Original - GetSlot
     */
     T* GetAt(size_t idx) {
         assert(IsIndexInBounds(idx));

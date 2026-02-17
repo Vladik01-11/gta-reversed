@@ -15,27 +15,33 @@ class CPlayerPed;
 
 class CClothes {
 public:
-    static int32& ms_clothesImageId;
-    static uint32& ms_numRuleTags;
     static uint32 (&ms_clothesRules)[600];
+    static uint32& ms_numRuleTags;
+    static int32& ms_clothesImageId;
 
 public:
-    static void InjectHooks();
+    static void RebuildPlayer(CPlayerPed* player, bool forReplay);
+    static void RebuildCutscenePlayer(CPlayerPed* pPlayer, int32 modelId);
+    static void ConstructPedModel(uint32 modelId, CPedClothesDesc& clothesDesc, const CPedClothesDesc* oldClothesDesc, bool cutsceneVersion);
+    static void Test();
+    static void RenderTest();
+    static void RebuildPlayerIfNeeded(CPlayerPed* player);
 
     static void Init();
+
+    static AssocGroupId GetDefaultPlayerMotionGroup();
+    static AssocGroupId GetPlayerMotionGroupToLoad();
+    static void RequestMotionGroupAnims();
+
+    static eClothesModelPart   GetTextureDependency(eClothesTexturePart tex);
+    static eClothesTexturePart GetDependentTexture(eClothesModelPart model);
+
     static void LoadClothesFile();
 
-    static void ConstructPedModel(uint32 modelId, CPedClothesDesc& newClothes, const CPedClothesDesc* oldClothes, bool bCutscenePlayer);
-    static void RequestMotionGroupAnims();
-    static void RebuildPlayerIfNeeded(CPlayerPed* player);
-    static void RebuildPlayer(CPlayerPed* player, bool bIgnoreFatAndMuscle);
-    static void RebuildCutscenePlayer(CPlayerPed* player, int32 modelId);
-    static eClothesModelPart GetTextureDependency(eClothesTexturePart eClothesTexturePart);
-    static eClothesTexturePart GetDependentTexture(eClothesModelPart eClothesModelPart);
-    static AssocGroupId GetPlayerMotionGroupToLoad();
-    static AssocGroupId GetDefaultPlayerMotionGroup();
+private: // NOTSA:
+    friend void InjectHooksMain();
+    static void InjectHooks();
 
-    // NOTSA
     static void AddRule(uint32 rule) {
         ms_clothesRules[ms_numRuleTags] = rule;
         ms_numRuleTags += 1;

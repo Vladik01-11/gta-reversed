@@ -1003,19 +1003,19 @@ void CReplay::RecordThisFrame() {
 // 0x45C750
 void CReplay::StoreClothesDesc(const CPedClothesDesc& desc, tReplayClothesBlock& packet) {
     packet.type = REPLAY_PACKET_CLOTHES;
-    rng::copy(desc.m_anModelKeys, packet.modelKeys.begin());
-    rng::copy(desc.m_anTextureKeys, packet.textureKeys.begin());
-    packet.fatStat = (int16)desc.m_fFatStat;
-    packet.muscleStat = (int16)desc.m_fMuscleStat;
+    rng::copy(desc.ModelKeys, packet.modelKeys.begin());
+    rng::copy(desc.TextureKeys, packet.textureKeys.begin());
+    packet.fatStat = (int16)desc.GetFatStat();
+    packet.muscleStat = (int16)desc.GetStrengthStat();
 }
 
 // 0x45C7D0
 void CReplay::RestoreClothesDesc(CPedClothesDesc& desc, tReplayClothesBlock& packet) {
     assert(packet.type == REPLAY_PACKET_CLOTHES);
-    rng::copy(packet.modelKeys, desc.m_anModelKeys.begin());
-    rng::copy(packet.textureKeys, desc.m_anTextureKeys.begin());
-    desc.m_fFatStat = (float)packet.fatStat;
-    desc.m_fMuscleStat = (float)packet.muscleStat;
+    rng::copy(packet.modelKeys, desc.ModelKeys.begin());
+    rng::copy(packet.textureKeys, desc.TextureKeys.begin());
+    desc.SetFatStat((float)packet.fatStat);
+    desc.SetStrengthStat((float)packet.muscleStat);
 }
 
 // 0x45CEA0

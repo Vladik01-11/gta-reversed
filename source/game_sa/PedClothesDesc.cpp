@@ -17,30 +17,25 @@ CPedClothesDesc::CPedClothesDesc() {
     Initialise();
 }
 
-CPedClothesDesc* CPedClothesDesc::Constructor() {
-    this->CPedClothesDesc::CPedClothesDesc();
-    return this;
-}
-
 // 0x5A78F0
 void CPedClothesDesc::Initialise() {
-    std::ranges::fill(m_anModelKeys, 0);
-    std::ranges::fill(m_anTextureKeys, 0);
-    m_fFatStat = 0.0f;
-    m_fMuscleStat = 0.0f;
+    std::ranges::fill(ModelKeys, 0);
+    std::ranges::fill(TextureKeys, 0);
+    SetFatStat(0.0f);
+    SetStrengthStat(0.0f);
 }
 
 // 0x5A7910
 void CPedClothesDesc::SetModel(uint32 modelId, eClothesModelPart modelPart) {
-    m_anModelKeys[modelPart] = modelId;
+    ModelKeys[modelPart] = modelId;
 }
 
 // 0x5A7920
 void CPedClothesDesc::SetModel(const char* model, eClothesModelPart modelPart) {
     if (model)
-        m_anModelKeys[modelPart] = CKeyGen::GetUppercaseKey(model);
+        ModelKeys[modelPart] = CKeyGen::GetUppercaseKey(model);
     else
-        m_anModelKeys[modelPart] = 0;
+        ModelKeys[modelPart] = 0;
 }
 
 // 0x5A7950
@@ -51,27 +46,27 @@ bool CPedClothesDesc::GetIsWearingBalaclava() {
 // 0x5A7970
 bool CPedClothesDesc::HasVisibleNewHairCut(int32 type) {
     /* Balaclava hides the hair */
-    if (m_anModelKeys[CLOTHES_MODEL_SPECIAL] == CKeyGen::GetUppercaseKey("balaclava")) {
+    if (ModelKeys[CLOTHES_MODEL_SPECIAL] == CKeyGen::GetUppercaseKey("balaclava")) {
         return false;
     }
 
     /* Hats hide the hair */
-    if (m_anModelKeys[CLOTHES_MODEL_HATS] != 0) {
+    if (ModelKeys[CLOTHES_MODEL_HATS] != 0) {
         return false;
     }
 
-    if (m_anModelKeys[CLOTHES_MODEL_HEAD] == CKeyGen::GetUppercaseKey("head")) {
+    if (ModelKeys[CLOTHES_MODEL_HEAD] == CKeyGen::GetUppercaseKey("head")) {
         return false;
     }
 
-    return type != 1 || m_anModelKeys[CLOTHES_MODEL_HEAD] == CKeyGen::GetUppercaseKey("afro");
+    return type != 1 || ModelKeys[CLOTHES_MODEL_HEAD] == CKeyGen::GetUppercaseKey("afro");
 }
 
 // 0x5A79D0
 bool CPedClothesDesc::HasVisibleTattoo() {
     // NOTE: Android: CLOTHES_TEX_TATTOOS1 = 4, CLOTHES_TEX_TATTOOS9 = 12
     for (int i = eClothesTexturePart::CLOTHES_TEXTURE_LOWER_LEFT_ARM; i <= eClothesTexturePart::CLOTHES_TEXTURE_UPPER_BACK; ++i) {
-        if (m_anTextureKeys[i] != 0) return true;
+        if (TextureKeys[i] != 0) return true;
     }
 
     return false;

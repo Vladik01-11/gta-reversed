@@ -281,7 +281,7 @@ void SetPlayerMood(CPlayerPed& player, eCJMood mood, uint32 time) {
 
 /// IS_PLAYER_WEARING(0500)
 bool IsPlayerWearing(CPlayerPed& player, eClothesTexturePart bodyPart, const char* textureName) {
-    return player.GetClothesDesc()->m_anTextureKeys[bodyPart] == CKeyGen::GetUppercaseKey(textureName);
+    return player.GetClothesDesc()->GetTexture(bodyPart) == CKeyGen::GetUppercaseKey(textureName);
 }
 
 /// SET_PLAYER_CAN_DO_DRIVE_BY(0501)

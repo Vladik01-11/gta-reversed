@@ -15,7 +15,7 @@ int32& CClothes::ms_clothesImageId = *(int32*)0xBC12F8;
 uint32& CClothes::ms_numRuleTags = *(uint32*)0xBC12FC;
 uint32 (&CClothes::ms_clothesRules)[600] = *(uint32(*)[600])0xBC1300;
 
-CPedClothesDesc& PlayerClothes = *(CPedClothesDesc*)0xBC1C78;
+static CPedClothesDesc& OldClothesState = *(CPedClothesDesc*)0xBC1C78;
 
 void CClothes::InjectHooks() {
     RH_ScopedClass(CClothes);
@@ -36,11 +36,8 @@ void CClothes::InjectHooks() {
 
 // 0x5A80D0
 void CClothes::Init() {
-    for (int32 part = 0; part < CLOTHES_TEXTURE_TOTAL; part++) {
-        eClothesModelPart modelPart = GetTextureDependency(static_cast<eClothesTexturePart>(part));
-        PlayerClothes.m_anTextureKeys[part] = 0;
-        if (modelPart != CLOTHES_MODEL_UNAVAILABLE)
-            PlayerClothes.m_anModelKeys[modelPart] = 0;
+    for (auto part = 0u; part < CLOTHES_TEXTURE_TOTAL; part++) {
+        OldClothesState.SetTextureAndModel(-1, -1, static_cast<eClothesTexturePart>(part));
     }
     ms_numRuleTags = 0;
     ms_clothesImageId = CStreaming::AddImageToList("MODELS\\PLAYER.IMG", false);
@@ -48,17 +45,25 @@ void CClothes::Init() {
 }
 
 // 0x5A7A20
-int32 GetClothesModelFromName(const char* name) {
-    if (!strcmp(name, "torso"))    return CLOTHES_MODEL_TORSO;
-    if (!strcmp(name, "head"))     return CLOTHES_MODEL_HEAD;
-    if (!strcmp(name, "hands"))    return CLOTHES_MODEL_HANDS;
-    if (!strcmp(name, "legs"))     return CLOTHES_MODEL_LEGS;
-    if (!strcmp(name, "feet"))     return CLOTHES_MODEL_SHOES;
-    if (!strcmp(name, "necklace")) return CLOTHES_MODEL_NECKLACE;
-    if (!strcmp(name, "watch"))    return CLOTHES_MODEL_BRACELET;
-    if (!strcmp(name, "glasses"))  return CLOTHES_MODEL_GLASSES;
-    if (!strcmp(name, "hat"))      return CLOTHES_MODEL_HATS;
-    if (!strcmp(name, "extra1"))   return CLOTHES_MODEL_SPECIAL;
+eClothesModelPart GetClothesModelFromName(const char* name) {
+    constexpr struct {const char* name; eClothesModelPart model;} kClothesMap[]{
+        { "torso",    CLOTHES_MODEL_TORSO    },
+        { "head",     CLOTHES_MODEL_HEAD     },
+        { "hands",    CLOTHES_MODEL_HANDS    },
+        { "legs",     CLOTHES_MODEL_LEGS     },
+        { "feet",     CLOTHES_MODEL_SHOES    },
+        { "necklace", CLOTHES_MODEL_NECKLACE },
+        { "watch",    CLOTHES_MODEL_BRACELET },
+        { "glasses",  CLOTHES_MODEL_GLASSES  },
+        { "hat",      CLOTHES_MODEL_HATS     },
+        { "extra1",   CLOTHES_MODEL_SPECIAL  },
+    };
+
+    for (const auto& entry : kClothesMap) {
+        if (!strcmp(name, entry.name)) {
+            return entry.model;
+        }
+    }
 
     return CLOTHES_MODEL_TORSO;
 }
@@ -118,7 +123,7 @@ void CClothes::LoadClothesFile() {
         }();
         AddRule(static_cast<uint32>(ruleTag));
 
-        const auto GetNextArg = [&nextToken]{
+        const auto GetNextArg = [&nextToken] {
             return strtok_s(NULL, " \t,", &nextToken);
         };
         switch (ruleTag) {
@@ -146,7 +151,7 @@ void CClothes::LoadClothesFile() {
         case eClothRule::TAG_END_IGNORE:
         case eClothRule::TAG_IGNORE:
         case eClothRule::TAG_END_EXCLUSIVE:
-        case eClothRule::TAG_EXCLUSIVE: 
+        case eClothRule::TAG_EXCLUSIVE:
             AddRule(CKeyGen::GetUppercaseKey(GetNextArg()));
             break;
         }
@@ -159,15 +164,26 @@ void CClothes::LoadClothesFile() {
 void CClothes::ConstructPedModel(uint32 modelId, CPedClothesDesc& newClothes, const CPedClothesDesc* oldClothes, bool bCutscenePlayer) {
     CTimer::Suspend();
 
-    auto modelInfo = CModelInfo::GetModelInfo(modelId)->AsPedModelInfoPtr();
-    auto txd = CTxdStore::ms_pTxdPool->GetAt(modelInfo->m_nTxdIndex);
-    auto skinnedClump = CClothesBuilder::CreateSkinnedClump(modelInfo->m_pRwClump, txd->m_pRwDictionary, newClothes, oldClothes, bCutscenePlayer);
-    if (skinnedClump) {
+    auto mi = CModelInfo::GetPedModelInfo(modelId);
+    auto txd = CTxdStore::GetTxd(mi->m_nTxdIndex);
+
+    // NOTE: Added in Mobile?
+    if (!txd) {
+        txd = RwTexDictionaryCreate();
+        CTxdStore::SetTxd(mi->m_nTxdIndex, txd);
+    }
+
+    auto pedClump = CClothesBuilder::CreateSkinnedClump(mi->m_pRwClump, txd, newClothes, oldClothes, bCutscenePlayer);
+    if (pedClump) {
         RequestMotionGroupAnims();
-        modelInfo->AddTexDictionaryRef();
-        modelInfo->DeleteRwObject();
-        modelInfo->SetClump(skinnedClump);
-        modelInfo->RemoveTexDictionaryRef();
+
+        mi->AddTexDictionaryRef();
+        mi->DeleteRwObject();
+
+        mi->SetClump(pedClump);
+
+        mi->RemoveTexDictionaryRef();
+
         CStreaming::LoadAllRequestedModels(true);
     }
 
@@ -176,15 +192,15 @@ void CClothes::ConstructPedModel(uint32 modelId, CPedClothesDesc& newClothes, co
 
 // 0x5A8120
 void CClothes::RequestMotionGroupAnims() {
-    const auto group = GetPlayerMotionGroupToLoad();
+    const auto groupId = GetPlayerMotionGroupToLoad();
     const auto fatIndex = CAnimManager::GetAnimationBlockIndex("fat");
     const auto muscularIndex = CAnimManager::GetAnimationBlockIndex("muscular");
 
-    if (group == ANIM_GROUP_FAT) {
+    if (groupId == ANIM_GROUP_FAT) {
         CStreaming::RequestModel(IFPToModelId(fatIndex), STREAMING_GAME_REQUIRED | STREAMING_PRIORITY_REQUEST);
         CStreaming::SetModelIsDeletable(IFPToModelId(muscularIndex));
     } else {
-        if (group == ANIM_GROUP_MUSCULAR) {
+        if (groupId == ANIM_GROUP_MUSCULAR) {
             CStreaming::RequestModel(IFPToModelId(muscularIndex), STREAMING_GAME_REQUIRED | STREAMING_PRIORITY_REQUEST);
             CStreaming::SetModelIsDeletable(IFPToModelId(fatIndex));
         } else {
@@ -196,8 +212,8 @@ void CClothes::RequestMotionGroupAnims() {
 
 // 0x5A8390
 void CClothes::RebuildPlayerIfNeeded(CPlayerPed* player) {
-    const auto& fat = player->GetPlayerData()->m_pPedClothesDesc->m_fFatStat;
-    const auto& muscle = player->GetPlayerData()->m_pPedClothesDesc->m_fMuscleStat;
+    const auto& fat    = player->GetClothesDesc()->GetFatStat();
+    const auto& muscle = player->GetClothesDesc()->GetStrengthStat();
 
     if (CStats::GetStatValue(STAT_FAT) != fat || CStats::GetStatValue(STAT_MUSCLE) != muscle) {
         RebuildPlayer(player, 0);
@@ -205,30 +221,31 @@ void CClothes::RebuildPlayerIfNeeded(CPlayerPed* player) {
 }
 
 // 0x5A82C0
-void CClothes::RebuildPlayer(CPlayerPed* player, bool bIgnoreFatAndMuscle) {
+void CClothes::RebuildPlayer(CPlayerPed* player, bool forReplay) {
     auto assoc = RpAnimBlendClumpExtractAssociations(player->m_pRwClump);
     auto task = player->GetIntelligence()->GetTaskManager().GetTaskSecondary(TASK_SECONDARY_IK);
-    if (task)
+    if (task) {
         task->MakeAbortable(player, ABORT_PRIORITY_IMMEDIATE, nullptr);
+    }
 
     player->DeleteRwObject();
     CWorld::Remove(player);
-    if (!bIgnoreFatAndMuscle) {
-        player->GetPlayerData()->m_pPedClothesDesc->m_fFatStat = CStats::GetStatValue(STAT_FAT);
-        player->GetPlayerData()->m_pPedClothesDesc->m_fMuscleStat = CStats::GetStatValue(STAT_MUSCLE);
+    if (!forReplay) {
+        player->GetClothesDesc()->SetFatStat(CStats::GetStatValue(STAT_FAT));
+        player->GetClothesDesc()->SetStrengthStat(CStats::GetStatValue(STAT_MUSCLE));
     }
 
-    ConstructPedModel(player->GetModelIndex(), *player->GetPlayerData()->m_pPedClothesDesc, &PlayerClothes, 0);
+    ConstructPedModel(player->GetModelIndex(), *player->GetClothesDesc(), &OldClothesState, 0);
     player->Dress();
     RpAnimBlendClumpGiveAssociations(player->m_pRwClump, assoc);
-    PlayerClothes = *player->GetPlayerData()->m_pPedClothesDesc;
+    OldClothesState = *player->GetClothesDesc();
 }
 
 // 0x5A8270
 void CClothes::RebuildCutscenePlayer(CPlayerPed* player, int32 modelId) {
-    const auto& clothesDesc    = player->GetPlayerData()->m_pPedClothesDesc;
-    clothesDesc->m_fFatStat    = CStats::GetStatValue(STAT_FAT);
-    clothesDesc->m_fMuscleStat = CStats::GetStatValue(STAT_MUSCLE);
+    const auto& clothesDesc = player->GetClothesDesc();
+    clothesDesc->SetFatStat(CStats::GetStatValue(STAT_FAT));
+    clothesDesc->SetStrengthStat(CStats::GetStatValue(STAT_MUSCLE));
     ConstructPedModel(modelId, *clothesDesc, nullptr, true);
 }
 
@@ -269,24 +286,40 @@ AssocGroupId CClothes::GetPlayerMotionGroupToLoad() {
     const auto fat = CStats::GetStatValue(STAT_FAT);
     const auto muscle = CStats::GetStatValue(STAT_MUSCLE);
 
-    if (fat > 500.0f && fat > muscle)
+    if (fat > 500.0f && fat > muscle) {
         return ANIM_GROUP_FAT;
+    }
 
-    if (muscle <= 500.0f)
+    if (muscle <= 500.0f) {
         return ANIM_GROUP_PLAYER;
+    }
 
     return ANIM_GROUP_MUSCULAR;
 }
 
 // 0x5A81B0
 AssocGroupId CClothes::GetDefaultPlayerMotionGroup() {
-    AssocGroupId group = GetPlayerMotionGroupToLoad();
-    if (group == ANIM_GROUP_PLAYER)
+    AssocGroupId groupId = GetPlayerMotionGroupToLoad();
+    if (groupId == ANIM_GROUP_PLAYER) {
         return ANIM_GROUP_PLAYER;
+    }
 
-    CAnimBlock* animBlock = CAnimManager::GetAnimationBlock(group);
-    if (!animBlock || !animBlock->IsLoaded)
+    CAnimBlock* animBlock = CAnimManager::GetAnimationBlock(groupId);
+    if (!animBlock || !animBlock->IsLoaded) {
         return ANIM_GROUP_PLAYER;
+    }
 
-    return group;
+    return groupId;
+}
+
+// debug function
+// NOP
+void CClothes::Test() {
+    return;
+}
+
+// debug function
+// NOP
+void CClothes::RenderTest() {
+    return;
 }

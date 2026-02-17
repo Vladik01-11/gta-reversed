@@ -623,7 +623,7 @@ bool CAEPedSpeechAudioEntity::IsCJDressedInForGangSpeech() {
     }
 
     return rng::any_of(GANG_SPEECH_CLOTHES, [pcd = FindPlayerPed()->GetClothesDesc()](auto& gc) {
-        return pcd->m_anTextureKeys[gc.ClothesPart] == CKeyGen::GetUppercaseKey(gc.TexName);
+        return pcd->TextureKeys[gc.ClothesPart] == CKeyGen::GetUppercaseKey(gc.TexName);
     });
 }
 

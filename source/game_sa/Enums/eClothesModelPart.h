@@ -6,6 +6,7 @@
 */
 #pragma once
 
+// ePlayerClothesModels
 enum eClothesModelPart : int32 {
     CLOTHES_MODEL_TORSO        = 0,
     CLOTHES_MODEL_HEAD         = 1,

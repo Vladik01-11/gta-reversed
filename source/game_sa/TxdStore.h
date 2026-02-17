@@ -70,6 +70,7 @@ public:
     static int32 FindTxdSlot(uint32 hash);
 
     static RwTexDictionary* GetTxd(int32 index);
+    static void SetTxd(int32 index, RwTexDictionary* newTxd) { ms_pTxdPool->GetAt(index)->m_pRwDictionary = newTxd; }
     static int32 GetParentTxdSlot(int32 index);
 
     static void Create(int32 index);

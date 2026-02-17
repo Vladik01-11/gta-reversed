@@ -418,7 +418,7 @@ void CGameLogic::RestorePlayerStuffDuringResurrection(CPlayerPed* player, CVecto
     CTimeCycle::StopExtraColour(0);
     CPostEffects::ScriptResetForEffects();
 
-    if (auto clothesDesc = playerData->m_pPedClothesDesc; clothesDesc->m_anModelKeys[9]) {
+    if (auto clothesDesc = playerData->m_pPedClothesDesc; clothesDesc->ModelKeys[CLOTHES_MODEL_SPECIAL]) {
         clothesDesc->SetTextureAndModel(nullptr, nullptr, CLOTHES_TEXTURE_SPECIAL);
         CClothes::RebuildPlayer(player, false);
     } else {

@@ -159,7 +159,7 @@ void CShopping::Buy(uint32 key, int32 extraInfo) {
     case PRICE_SECTION_CLOTHES: {
         CStats::ModifyStat(STAT_FASHION_BUDGET, fPrice);
 
-        const auto texKey = playerClothes->m_anTextureKeys[priceInfo.clothes.type];
+        const auto texKey = playerClothes->TextureKeys[priceInfo.clothes.type];
         if (texKey) {
             UpdateStats(GetItemIndex(texKey), false);
         }
@@ -182,7 +182,7 @@ void CShopping::Buy(uint32 key, int32 extraInfo) {
     case PRICE_SECTION_HAIRCUTS: {
         CStats::ModifyStat(STAT_HAIRDRESSING_BUDGET, fPrice);
 
-        const auto texKey = playerClothes->m_anTextureKeys[priceInfo.clothes.type];
+        const auto texKey = playerClothes->TextureKeys[priceInfo.clothes.type];
         if (texKey) {
             UpdateStats(GetItemIndex(texKey), false);
         }
