@@ -85,6 +85,7 @@ void CAnimBlendAssocGroup::CreateAssociations(const char* blockName) {
             NOTSA_LOG_WARN("ModelInfo (Key={}) for animation(Block={}; ID={}) not found", anim->m_hashKey, blockName, (int)id);
             continue;
         }
+        NOTSA_LOG_DEBUG("Associated anim {} with model {}", anim->GetHashKey(), mi->GetModelName()); // R* log
         CreateAssociation(assoc, anim, mi, i);
     }
 

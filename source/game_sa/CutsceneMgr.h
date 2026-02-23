@@ -145,7 +145,7 @@ public:
     static void LoadCutsceneData_overlay(const char* cutsceneName);
     static void LoadCutsceneData_postload();
     static bool LoadCutSceneFile(const char* csFileName);
-    static void LoadCutsceneData_preload();
+    static void LoadCutsceneData_preload(const char* cutsceneName);
     static void LoadEverythingBecauseCutsceneDeletedAllOfIt();
     static void RemoveCutscenePlayer();
     static void RemoveEverythingBecauseCutsceneDoesntFitInMemory();

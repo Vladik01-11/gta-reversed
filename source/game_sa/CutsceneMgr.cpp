@@ -433,7 +433,7 @@ void CCutsceneMgr::LoadCutsceneData_overlay(const char* cutsceneName) {
     CStreaming::RemoveUnusedModelsInLoadedList();
     CGame::DrasticTidyUpMemory(true);
     strcpy_s(ms_cutsceneName, cutsceneName);
-    CCutsceneMgr::LoadCutsceneData_preload();
+    CCutsceneMgr::LoadCutsceneData_preload(cutsceneName);
 
     CTimer::Resume();
 }
@@ -729,11 +729,13 @@ bool CCutsceneMgr::LoadCutSceneFile(const char* csFileName) {
 }
 
 // 0x5B05A0
-void CCutsceneMgr::LoadCutsceneData_preload() {
+void CCutsceneMgr::LoadCutsceneData_preload(const char* cutsceneName) {
     // Preload cutscene track (Except for the "finale" cutscene)
     if (!IsPlayingCSTheFinale()) {
         if (const auto trkId = FindCutsceneAudioTrackId(ms_cutsceneName); trkId != -1) {
+            NOTSA_LOG_DEBUG("Start preload audio {}", cutsceneName); // R* log
             AudioEngine.PreloadCutsceneTrack(trkId, true);
+            NOTSA_LOG_DEBUG("End preload audio {}", cutsceneName); // R* log
         }
     }
 
