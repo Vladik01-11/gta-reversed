@@ -53,6 +53,7 @@ void CWaterLevel::InjectHooks() {
 
 // NOTSA
 bool CWaterLevel::LoadDataFile() {
+    NOTSA_LOG_DEBUG("Init waterlevels"); // R* log
     const auto file = CFileMgr::OpenFile(m_nWaterConfiguration == 1 ? "DATA//water1.dat" : "DATA//water.dat", "r");
 
     const notsa::ScopeGuard autoCloser{ [&] { CFileMgr::CloseFile(file); } };

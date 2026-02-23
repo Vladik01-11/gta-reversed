@@ -162,7 +162,7 @@ void CRestart::FindClosestPoliceRestartPoint(CVector point, CVector& outPos, flo
                     closestIdx = (int32)i;
                 }
             }
-        }
+        } 
 
         if (closestIdx >= 0u) {
             outPos = PoliceRestartPoints[closestIdx];
